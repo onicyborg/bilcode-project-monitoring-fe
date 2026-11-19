@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.env
+.env.*
+!.env.example
+next-env.d.ts
+coverage/
+test-results/
+*.log
+*.tsbuildinfo
+*cookie*.json
