@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const standalone = path.join(root, ".next/standalone");
 const server = path.join(standalone, "server.js");
 if (!existsSync(server))
-  throw new Error("Standalone build is missing. Run npm run build first.");
+  throw new Error("Standalone build is missing. Run pnpm build first.");
 await mkdir(path.join(standalone, ".next"), { recursive: true });
 await cp(
   path.join(root, ".next/static"),

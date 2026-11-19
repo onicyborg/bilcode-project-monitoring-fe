@@ -1,0 +1,140 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [main, development]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  build-and-deploy:
+    if: github.ref == 'refs/heads/development'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: development
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAME: ghcr.io/onicyborg/bilcode-project-monitoring-fe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:development
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Check deployment configuration
+        id: deployment
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_ENV: ${{ secrets.VPS_ENV }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          missing=0
+          for name in VPS_HOST VPS_USER VPS_ENV VPS_SSH_KEY VPS_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "::notice::Set Environment development secret $name to enable deployment."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 0 ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'Image published; deployment skipped until Environment development secrets are filled.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Configure SSH
+        if: steps.deployment.outputs.ready == 'true'
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_SSH_PASSPHRASE: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          if [ -n "$VPS_SSH_PASSPHRASE" ]; then
+            cat > ~/.ssh/askpass <<'ASKPASS'
+          #!/bin/sh
+          printf '%s\n' "$VPS_SSH_PASSPHRASE"
+          ASKPASS
+            chmod 700 ~/.ssh/askpass
+            eval "$(ssh-agent -s)"
+            SSH_ASKPASS="$HOME/.ssh/askpass" SSH_ASKPASS_REQUIRE=force DISPLAY=:0 ssh-add ~/.ssh/id_ed25519 < /dev/null
+            rm ~/.ssh/askpass
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+          else
+            ssh-keygen -y -P '' -f ~/.ssh/id_ed25519 > /dev/null
+          fi
+      - name: Deploy on VPS
+        if: steps.deployment.outputs.ready == 'true'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_ENV: ${{ secrets.VPS_ENV }}
+          IMAGE: ${{ env.IMAGE_NAME }}@${{ steps.image.outputs.digest }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VPS_PORT="${VPS_PORT:-4238}"
+          app_dir=/opt/bilcode-monitoring-web
+          ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "install -d -m 700 '$app_dir'"
+          scp -P "$VPS_PORT" deploy/docker-compose.yml deploy/deploy.sh "$VPS_USER@$VPS_HOST:$app_dir/"
+          printf '%s\n' "$VPS_ENV" | ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "umask 077; cat > '$app_dir/.env.next'"
+          remote_script=$(cat <<'REMOTE'
+          set -euo pipefail
+          credentials=$(mktemp -d)
+          export DOCKER_CONFIG="$credentials"
+          trap 'rm -rf "$credentials"' EXIT
+          docker login ghcr.io -u "$1" --password-stdin
+          bash "$2/deploy.sh" "$3"
+          REMOTE
+          )
+          printf -v remote_command 'bash -c %q -- %q %q %q' "$remote_script" "$GHCR_USERNAME" "$app_dir" "$IMAGE"
+          printf '%s' "$GHCR_TOKEN" | ssh -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" "$remote_command"
+          echo 'Frontend deployed with image digest ${{ steps.image.outputs.digest }}.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Clean SSH credentials
+        if: always() && steps.deployment.outputs.ready == 'true'
+        run: |
+          rm -f ~/.ssh/id_ed25519 ~/.ssh/askpass
+          if [ -n "${SSH_AGENT_PID:-}" ]; then ssh-agent -k; fi

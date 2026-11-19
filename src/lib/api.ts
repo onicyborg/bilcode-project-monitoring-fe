@@ -6,33 +6,110 @@ export class ApiError extends Error {
     super(message);
   }
 }
+
+type Tokens = { access_token: string; expires_in: number };
+let accessToken: string | undefined;
+let expiresAt = 0;
+let refreshing: Promise<void> | undefined;
+let generation = 0;
+const forget = () => {
+  accessToken = undefined;
+  expiresAt = 0;
+  generation++;
+};
+const remember = (tokens: Tokens) => {
+  accessToken = tokens.access_token;
+  expiresAt = Date.now() + tokens.expires_in * 1000;
+};
+
+async function send(
+  path: string,
+  method: string,
+  body?: unknown,
+  token?: string,
+) {
+  const response = await fetch(`/api${path}`, {
+    method,
+    credentials: "include",
+    cache: "no-store",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok)
+    throw new ApiError(
+      (Array.isArray(data.message) ? data.message.join(" ") : data.message) ||
+        "Request gagal. Periksa koneksi backend.",
+      response.status,
+    );
+  return data;
+}
+
+function refresh() {
+  if (!refreshing) {
+    const current = generation;
+    const run = async () => {
+      const tokens = await send("/auth/refresh", "POST");
+      if (generation !== current)
+        throw new ApiError("Sesi panel berubah. Silakan masuk kembali.", 401);
+      remember(tokens);
+    };
+    const locked =
+      typeof navigator !== "undefined" && navigator.locks
+        ? navigator.locks.request("monitor-panel-refresh", run)
+        : run();
+    refreshing = Promise.resolve(locked)
+      .catch((error) => {
+        if (
+          error instanceof ApiError &&
+          error.status === 401 &&
+          generation === current
+        )
+          forget();
+        throw error;
+      })
+      .finally(() => {
+        refreshing = undefined;
+      });
+  }
+  return refreshing;
+}
+
 export async function api<T>(
   path: string,
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    method,
-    credentials: "include",
-    cache: "no-store",
-    ...(body !== undefined
-      ? {
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      : {}),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = Array.isArray(data.message)
-      ? data.message.join(" ")
-      : data.message;
-    throw new ApiError(
-      message || "Request gagal. Periksa koneksi backend.",
-      response.status,
-    );
+  if (path === "/auth/login") {
+    generation++;
+    const result = await send(path, method, body);
+    remember(result);
+    return result as T;
   }
-  return data as T;
+  if (path === "/auth/logout") {
+    // Finish an in-flight rotation before revoking the cookie it produces.
+    await refreshing?.catch(() => {});
+    const result = await send(path, method, body, accessToken);
+    forget();
+    return result as T;
+  }
+  if (path === "/auth/refresh") {
+    await refresh();
+    return { access_token: accessToken } as T;
+  }
+  if (!accessToken || Date.now() >= expiresAt - 30_000) await refresh();
+  const sentToken = accessToken;
+  try {
+    return (await send(path, method, body, sentToken)) as T;
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) throw error;
+    // Another request may already have replaced the rejected token.
+    if (accessToken === sentToken) await refresh();
+    return (await send(path, method, body, accessToken)) as T;
+  }
 }
 
 export interface CheckRun {

@@ -5,22 +5,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import {
-  ArrowClockwise,
+  RotateCw as ArrowClockwise,
   CheckCircle,
   Clock,
   Cookie,
-  GearSix,
+  Settings as GearSix,
   ListChecks,
   Moon,
   Pause,
   Play,
-  SignOut,
+  LogOut as SignOut,
   Sun,
-  UploadSimple,
-  Warning,
-  WhatsappLogo,
-} from "@phosphor-icons/react";
+  Upload as UploadSimple,
+  TriangleAlert as Warning,
+  MessageCircle as WhatsappLogo,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CookieDropzone } from "@/components/cookie-dropzone";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -631,9 +632,9 @@ function Overview({
           <div className="control-heading">
             <div className="control-icon">
               {running ? (
-                <Play size={27} weight="fill" />
+                <Play size={27} fill="currentColor" />
               ) : (
-                <Pause size={27} weight="fill" />
+                <Pause size={27} fill="currentColor" />
               )}
             </div>
             <Status
@@ -822,7 +823,7 @@ function SessionPanel({
   action: Action;
 }) {
   const [text, setText] = useState("");
-  const file = useRef<HTMLInputElement>(null);
+  const [uploadRevision, setUploadRevision] = useState(0);
   const running = summary.state.desiredRunning;
   return (
     <div className="two-column">
@@ -855,34 +856,18 @@ function SessionPanel({
             );
             if (ok) {
               setText("");
-              if (file.current) file.current.value = "";
+              setUploadRevision((revision) => revision + 1);
             }
           }}
         >
           <div className="field">
             <Label htmlFor="cookie-file">File export cookie</Label>
-            <Input
-              ref={file}
-              id="cookie-file"
-              type="file"
-              accept=".json,application/json"
+            <CookieDropzone
+              key={uploadRevision}
               disabled={running || !!busy}
-              onChange={async (event) => {
-                const selected = event.target.files?.[0];
-                if (!selected) return;
-                if (selected.size > 100000) {
-                  toast.error("File terlalu besar. Batas file cookie 100 KB.");
-                  event.target.value = "";
-                  return;
-                }
-                try {
-                  setText(await selected.text());
-                } catch {
-                  toast.error("File tidak dapat dibaca.");
-                }
-              }}
+              onLoad={setText}
             />
-            <p className="field-help">
+            <p id="cookie-file-help" className="field-help">
               Format JSON, maksimal 100 KB. Isi cookie tidak ditampilkan kembali
               setelah disimpan.
             </p>

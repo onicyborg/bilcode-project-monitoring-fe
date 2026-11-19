@@ -10,3 +10,9 @@ test-results/
 *.log
 *.tsbuildinfo
 *cookie*.json
+
+# Deployment runtime state and private secret exports
+deploy/.env*
+deploy/.deployment*
+deploy/.deploy.lock
+*secrets*.txt
