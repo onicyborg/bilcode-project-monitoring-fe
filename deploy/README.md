@@ -1,44 +1,68 @@
-# Deployment development
+# Deployment frontend ke Vercel
 
-Repository ini memiliki dua branch: `main` untuk kode utama dan `development` untuk deployment. Push ke keduanya menjalankan verifikasi; hanya `development` yang build/publish image GHCR lalu deploy. Workflow manual juga harus memilih branch `development`.
+Frontend memakai Vercel Git Integration. Backend NestJS dan GOWA tetap di VPS, database backend memakai Neon. Workflow Docker/SSH frontend telah dihapus. GitHub Actions kini menjalankan pengujian dan build saja.
 
-## GitHub Environment
+Branch utama repository tetap `main`. Sesuai alur deployment project, branch yang dipublikasikan Vercel adalah **`development`**. Di Vercel, istilah **Production** merujuk ke domain live project, meskipun branch-nya bernama development dan backend memakai Neon development.
 
-Gunakan Environment **`development`** pada Settings > Environments. Buat secret `VPS_HOST`, `VPS_PORT` (4238), `VPS_USER`, `VPS_KNOWN_HOSTS`, `VPS_SSH_KEY`, dan `VPS_ENV`. `VPS_SSH_PASSPHRASE` opsional. `GITHUB_TOKEN` disediakan otomatis oleh Actions.
+## 1. Import repository
 
-Nama dan nilai siap salin ada di file lokal privat `github-environment-secrets.txt` di folder pengelompokan project, di luar kedua repo. File tersebut tidak dipush. Secret `VPS_ENV` adalah seluruh isi environment aplikasi dalam satu nilai multiline, bukan satu secret untuk setiap variabel aplikasi. Template non-rahasia tersedia di `production.env.example`.
+1. Login ke https://vercel.com/new dengan GitHub.
+2. Import `onicyborg/bilcode-project-monitoring-fe`; izinkan akses Vercel GitHub App untuk repo ini.
+3. Pilih framework **Next.js**, root directory `./`, dan Node.js **24.x**.
+4. Install Command: `pnpm install --frozen-lockfile`.
+5. Build Command: `pnpm test && pnpm build` (sudah ditetapkan di `vercel.json`). Output Directory biarkan default Next.js. Jangan gunakan output export/static atau `.next/standalone`.
 
-Jika secret belum diisi, image tetap dibangun dan diterbitkan, lalu deployment dilewati dengan pemberitahuan pada job summary. Setelah secret terisi, jalankan Actions > Build and deploy > Run workflow > development. Pengisian secret sendiri tidak memicu push baru. Jalankan backend lebih dulu, lalu frontend.
+## 2. Tambahkan environment variable
 
-## VPS dan domain
+Pada Environment Variables Vercel, tambahkan nilai ini untuk **Production**:
 
-- SSH: host dan port sesuai secret; key deployment khusus sudah dipasang pada VPS.
-- Backend: `/opt/bilcode-monitoring-api`, listen lokal `127.0.0.1:4100`.
-- Frontend: `/opt/bilcode-monitoring-web`, listen lokal `127.0.0.1:3100`.
-- Network Docker bersama: `bilcode-monitoring-services`, dibuat otomatis jika belum ada.
-- Domain frontend: `https://bilcode-monitoring.geats.web.id`.
-- Domain backend: `https://api-bilcode-monitoring.geats.web.id`.
-- Managed reverse proxy/TLS penyedia harus mengarahkan kedua domain ke container VPS yang sama pada private port **8080**. Nginx membedakan route melalui Host; konfigurasi `nginx.conf` repo ini sudah disiapkan pada VPS. Konfigurasi GOWA tetap menggunakan domainnya sendiri.
-
-Browser frontend tetap memanggil `/api/*` pada origin frontend. Next.js meneruskan ke backend melalui network internal Docker. Backend juga tersedia lewat subdomain API, dengan autentikasi Bearer dan origin guard. Cookie refresh panel HttpOnly tetap berada pada origin frontend, tanpa CORS lintas domain untuk penggunaan panel.
-
-## Alur rilis
-
-Image memakai digest SHA256 dari hasil build, bukan mutable latest. Workflow mengirim Compose/script/environment lewat SSH dengan known-host checking, login GHCR menggunakan credential sementara, lalu menjalankan deploy script. Script mengunci deployment, menarik image, dan menunggu health check. Jika pembaruan gagal, script mencoba mengembalikan image serta environment sebelumnya. Migrasi database yang sudah berhasil tidak otomatis dibalik.
-
-Backend memakai **Neon PostgreSQL development**, tidak membuat database di VPS. `DATABASE_URL` memakai pooled connection untuk query Prisma. `DIRECT_DATABASE_URL` memakai endpoint direct untuk migrasi dan session advisory lock worker; jangan memakai transaction pooler untuk session lock. Koneksi wajib TLS. Jika koneksi lock terputus, backend berhenti agar restart policy mengembalikan worker dengan lock baru.
-
-Migrasi dijalankan melalui one-off container sebelum API diperbarui. Pertahankan `ENCRYPTION_KEY` untuk membaca secret terenkripsi, dan kedua JWT secret untuk mempertahankan sesi panel. Jangan menjalankan integration test pada Neon: pengujian memakai PostgreSQL lokal/CI dan database khusus yang dibuat ulang.
-
-Frontend standalone sudah menyertakan aset statis, berjalan sebagai user non-root, dan memerlukan backend hanya ketika request API dibuat. `API_URL=http://bilcode-monitoring-api:4100` ditetapkan saat build image; jika alamat internal berubah, sesuaikan Dockerfile/build arg dan build ulang.
-
-Instalasi database baru dalam keadaan monitoring berhenti. Impor dan validasi cookie Bilcode melalui panel sebelum Mulai. Login/logout panel tidak menggantikan sesi Bilcode. Service Python lama tetap dihentikan untuk menghindari dua poller memakai sesi yang sama.
-
-## Pemeriksaan setelah rilis
-
-```bash
-curl -fsS https://api-bilcode-monitoring.geats.web.id/api/health
-curl -fsS https://bilcode-monitoring.geats.web.id/api/health
+```dotenv
+API_URL=https://api-bilcode-monitoring.geats.web.id
 ```
 
-Keduanya harus melaporkan database connected. Login melalui panel, muat ulang halaman untuk memeriksa refresh JWT, dan periksa status monitoring sebelum mengaktifkannya.
+Gunakan origin tanpa `/api` atau trailing slash. Nilai ini bukan `NEXT_PUBLIC_API_URL`: browser memanggil `/api/*` pada domain frontend, lalu rewrite Next.js meneruskannya ke backend publik HTTPS. Backend harus dapat dijangkau dari internet; hostname Docker internal dan localhost VPS tidak dapat diakses Vercel.
+
+Environment variable GitHub tidak otomatis disalin ke Vercel. Tidak perlu `VPS_ENV`, SSH key, database URL, JWT secret, atau password GOWA pada frontend. Vercel mengatur NODE_ENV/port sendiri. Perubahan API_URL membutuhkan deployment baru karena rewrite ditetapkan saat build.
+
+## 3. Tetapkan branch deployment
+
+1. Setelah project dibuat, buka **Settings > Environments > Production > Branch Tracking / Production Branch**. Pada tampilan Vercel lain pengaturan ini dapat berada di **Settings > Git**.
+2. Ubah Production Branch dari `main` menjadi **`development`**.
+3. Jika proses import pertama sudah memakai main, jangan gunakan deployment itu sebagai hasil akhir. Setelah mengganti branch, deploy ulang commit terbaru development dari tab Deployments/Create Deployment.
+4. `vercel.json` mengaktifkan deployment Git hanya untuk development. Main tetap tersimpan sebagai branch utama dan tidak dipublikasikan otomatis.
+
+## 4. Pasang domain frontend
+
+1. Buka **Settings > Domains**, tambahkan `bilcode-monitoring.geats.web.id` untuk Production.
+2. Pada pengelola DNS `geats.web.id`, ganti record hostname `bilcode-monitoring` menjadi **CNAME** dengan target persis yang Vercel tampilkan. Hapus record A/AAAA yang bertabrakan pada hostname yang sama. Jangan menyalin target CNAME project lain.
+3. Domain frontend tidak lagi diarahkan ke managed reverse proxy/container VPS. Jika masih ada mapping frontend di panel VPS, hapus mapping itu. Domain `api-bilcode-monitoring.geats.web.id` dan `wa.geats.web.id` tetap diarahkan ke VPS seperti sebelumnya.
+4. Tunggu status domain valid dan sertifikat HTTPS aktif di Vercel.
+
+## 5. Pastikan origin backend sesuai
+
+GitHub Environment backend `development` > secret VPS_ENV harus berisi:
+
+```dotenv
+APP_ORIGIN=https://bilcode-monitoring.geats.web.id
+```
+
+Nilai itu sudah sesuai untuk domain final. Jika ingin login melalui domain bawaan `project.vercel.app` sebelum DNS custom domain selesai, tambahkan origin bawaan yang persis ke APP_ORIGIN, dipisahkan koma, lalu redeploy backend. Jangan memakai wildcard `*.vercel.app`. Preview URL lain tetap ditolak jika tidak terdaftar.
+
+Cookie refresh panel bersifat HttpOnly/Secure, tanpa atribut Domain, dan memakai path `/api/auth`. Respons rewrite diterima browser pada origin frontend sehingga login dan refresh tetap melalui satu origin; tidak perlu melonggarkan CORS backend.
+
+## 6. Deploy dan verifikasi
+
+1. Deploy development melalui Vercel.
+2. Buka `https://bilcode-monitoring.geats.web.id/api/health`; respons harus menyebut database connected.
+3. Login ke panel, reload untuk memeriksa pemulihan sesi, dan buka halaman Sesi/Log/Konfigurasi.
+4. Pastikan monitoring masih berhenti sampai kamu siap mengimpor cookie Bilcode dan menjalankan monitoring.
+5. Setelah setup, setiap push ke development otomatis menjalankan build dan deployment Vercel. Build command menjalankan pengujian lebih dulu sehingga pengujian gagal membatalkan deployment. GitHub Actions juga menjalankan CI secara terpisah.
+
+Tidak diperlukan VERCEL_TOKEN atau workflow GitHub Actions deployment tambahan untuk integrasi Git bawaan ini. Secret SSH frontend lama di GitHub tidak digunakan lagi dan dapat dihapus dari environment frontend; jangan menghapus secret environment backend.
+
+## Referensi
+
+- https://vercel.com/docs/git/vercel-for-github
+- https://vercel.com/docs/project-configuration/git-configuration
+- https://vercel.com/docs/environment-variables
+- https://vercel.com/docs/domains/working-with-domains/add-a-domain

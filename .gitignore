@@ -16,3 +16,5 @@ deploy/.env*
 deploy/.deployment*
 deploy/.deploy.lock
 *secrets*.txt
+
+.vercel/
