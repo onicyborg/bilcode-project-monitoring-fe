@@ -90,3 +90,11 @@ Deploy backend yang memiliki endpoint OTP sebelum memperbarui frontend. Tidak ad
 Desain mengacu pada skill UI UX Pro Max dengan gaya minimal operasional, IBM Plex Sans, aksen biru, dan kontrol Nova tanpa radius. Desktop memakai navigasi samping; mobile memakai navigasi bawah dengan safe-area spacing. Riwayat tabel menjadi catatan berlabel pada layar kecil. Form OTP menjadi jalur utama, import cookie dapat dibuka jika diperlukan, dan tombol validasi sesi selalu terlihat.
 
 Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan browser mencakup empat halaman pada lebar 375/768/1024/1440, tema terang/gelap, form login, navigasi, filter log, konfirmasi pengiriman (dibatalkan), disclosure import cookie, serta pembesaran teks 200%. Tidak ada OTP nyata atau pesan WhatsApp dikirim selama pemeriksaan desain.
+
+## Proyek dan penawaran
+
+Halaman `/bids` menampilkan proyek tersimpan dan riwayat penawaran. Notifikasi proyek WhatsApp menyertakan tautan ke halaman ini. Memuat halaman hanya membaca database; tombol Sinkronkan Bilcode memperbarui proyek dan seluruh riwayat bid, tanpa mengirim pengajuan baru.
+
+Pilih Konfirmasi & ajukan untuk melihat izin pemakaian AI dan pengiriman langsung. Satu konfirmasi **Ya, susun & kirim bid** mengizinkan backend menyusun proposal lalu mengirimkannya. Nilai `proposed_amount` tetap **0** mengikuti kontrak payload saat ini. Jika hasil POST belum pasti, penawaran ditandai menunggu kepastian dan tombol pengiriman dikunci; jangan mengulang manual di dashboard Bilcode. Status lokal pengiriman dan status asli Bilcode ditampilkan terpisah.
+
+Pengecekan status bid mengikuti interval monitoring pada backend. Saat monitoring berhenti, pengecekan berkala juga berhenti; sinkronisasi manual masih tersedia. Perubahan status dikirim ke WhatsApp, termasuk untuk bid lama yang diimpor sebagai baseline. Frontend membaca status tersimpan setiap 10 detik. Deploy backend beserta migrasi bid terlebih dahulu dan tambahkan `VIKEY_API_KEY` ke secret backend `VPS_ENV`. Tidak ada API key AI atau environment tambahan pada Vercel.

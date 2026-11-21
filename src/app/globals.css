@@ -1270,6 +1270,167 @@ select {
 .full-width {
   width: 100%;
 }
+.bids-workspace {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+.bids-toolbar {
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.bids-toolbar h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.bids-toolbar p {
+  margin: 6px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.bids-toolbar > .field-help {
+  flex-basis: 100%;
+}
+.bid-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.bid-section-heading h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.bid-section-heading > span {
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
+.bid-project-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.bid-project,
+.bid-application {
+  padding: 24px;
+  min-width: 0;
+}
+.bid-project[data-highlighted="true"] {
+  border-color: var(--primary);
+}
+.bid-project h3,
+.bid-application h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+.bid-project-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+.bid-project > .field-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+}
+.bid-project details,
+.bid-application details {
+  margin: 16px 0;
+}
+.bid-project summary,
+.bid-application summary {
+  font-size: 0.875rem;
+  color: var(--primary);
+  padding: 10px 0;
+}
+.bid-project > button {
+  width: 100%;
+  margin-top: 12px;
+}
+.bid-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.bid-applications {
+  display: grid;
+  gap: 16px;
+}
+.bid-application-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+.bid-application-heading > div {
+  min-width: 0;
+}
+.bid-application-heading h3 {
+  margin: 8px 0;
+}
+.bid-application > p {
+  font-size: 0.875rem;
+}
+.bid-transitions {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.bid-transitions li {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.bid-transitions li > span:last-child {
+  color: var(--muted-foreground);
+}
+.bid-payload {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--secondary);
+  max-height: 400px;
+  overflow: auto;
+  padding: 16px;
+}
+@media (max-width: 1000px) {
+  .bid-project-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .bid-project,
+  .bid-application,
+  .bids-toolbar {
+    padding: 20px;
+  }
+  .bids-toolbar > button {
+    width: 100%;
+  }
+  .bid-application-heading {
+    flex-direction: column;
+  }
+}
 .login-help {
   margin-top: 24px;
   padding-top: 22px;
@@ -1452,7 +1613,7 @@ select {
   }
   .nav-links {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
   }
   .nav-links a {
