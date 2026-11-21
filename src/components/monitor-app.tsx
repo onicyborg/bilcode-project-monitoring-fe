@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CookieDropzone } from "@/components/cookie-dropzone";
 import { BilcodeOtpLogin } from "@/components/bilcode-otp-login";
+import { BidsPanel } from "@/components/bids-panel";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,7 +56,7 @@ import {
   type Summary,
 } from "@/lib/api";
 
-type Page = "overview" | "session" | "logs" | "settings";
+type Page = "overview" | "session" | "logs" | "settings" | "bids";
 type Action = (
   key: string,
   path: string,
@@ -66,6 +67,7 @@ type Action = (
 const navigation = [
   { page: "overview", href: "/", text: "Ringkasan", icon: ListChecks },
   { page: "session", href: "/session", text: "Sesi Bilcode", icon: Cookie },
+  { page: "bids", href: "/bids", text: "Penawaran", icon: ArrowUpRight },
   { page: "logs", href: "/logs", text: "Log & riwayat", icon: Clock },
   { page: "settings", href: "/settings", text: "Konfigurasi", icon: GearSix },
 ] as const;
@@ -226,6 +228,7 @@ export function MonitorApp({ page }: { page: Page }) {
   > | null>(null);
   const refreshId = useRef(0);
   const { theme, setTheme } = useTheme();
+  const clearUser = useCallback(() => setUser(null), []);
 
   useEffect(() => {
     api<{ username: string }>("/auth/me")
@@ -415,6 +418,7 @@ export function MonitorApp({ page }: { page: Page }) {
                   session: "Sesi Bilcode",
                   logs: "Log & riwayat",
                   settings: "Konfigurasi",
+                  bids: "Proyek & penawaran",
                 }[page]
               }
             </h1>
@@ -428,6 +432,7 @@ export function MonitorApp({ page }: { page: Page }) {
                   logs: "Telusuri pengecekan, aktivitas backend, dan hasil pengiriman.",
                   settings:
                     "Atur frekuensi pengecekan dan tujuan notifikasi WhatsApp.",
+                  bids: "Pilih proyek, konfirmasi pengajuan, dan pantau perubahan status bid.",
                 }[page]
               }
             </p>
@@ -456,6 +461,12 @@ export function MonitorApp({ page }: { page: Page }) {
           </div>
         ) : (
           <>
+            {page === "bids" && (
+              <BidsPanel
+                monitoringRunning={running}
+                onUnauthorized={clearUser}
+              />
+            )}
             {page === "overview" && (
               <Overview summary={summary} busy={busy} action={action} />
             )}
