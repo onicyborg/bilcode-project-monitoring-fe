@@ -19,6 +19,12 @@ import {
   Upload as UploadSimple,
   TriangleAlert as Warning,
   MessageCircle as WhatsappLogo,
+  ArrowUpRight,
+  ChevronRight,
+  ShieldCheck,
+  Activity,
+  Bell,
+  Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CookieDropzone } from "@/components/cookie-dropzone";
@@ -91,7 +97,7 @@ function statusName(value: string) {
         SENT: "Terkirim",
         PENDING: "Menunggu",
         FAILED: "Gagal dikirim",
-        MISSING: "Belum ada cookie",
+        MISSING: "Belum terhubung",
         UNVERIFIED: "Perlu validasi",
         VALID: "Valid",
         INVALID: "Sesi bermasalah",
@@ -307,11 +313,16 @@ export function MonitorApp({ page }: { page: Page }) {
       </a>
       <header className="topbar">
         <div className="topbar-inner">
-          <Link className="wordmark" href="/">
-            Bilcode<span>Project Monitoring</span>
+          <div className="header-context">
+            <span>Workspace</span>
+            <ChevronRight size={14} aria-hidden="true" />
+            <strong>Bilcode Monitoring</strong>
+          </div>
+          <Link className="mobile-wordmark" href="/">
+            Bilcode<span>Monitoring</span>
           </Link>
           <div className="header-tools">
-            <span className="environment">Lokal · WIB</span>
+            <span className="environment">Zona waktu · WIB</span>
             <Button
               variant="ghost"
               size="icon"
@@ -341,7 +352,11 @@ export function MonitorApp({ page }: { page: Page }) {
         </div>
       </header>
       <nav className="main-nav" aria-label="Navigasi utama">
-        <div>
+        <Link className="sidebar-brand" href="/">
+          Bilcode<span>Project Monitoring</span>
+        </Link>
+        <p className="nav-label">Workspace</p>
+        <div className="nav-links">
           {navigation.map((item) => (
             <Link
               key={item.page}
@@ -350,19 +365,53 @@ export function MonitorApp({ page }: { page: Page }) {
               className={page === item.page ? "active" : ""}
             >
               <item.icon size={19} aria-hidden="true" />
-              {item.text}
+              <span>{item.text}</span>
+              <ChevronRight
+                size={15}
+                className="nav-chevron"
+                aria-hidden="true"
+              />
             </Link>
           ))}
+        </div>
+        <div className="sidebar-workflow">
+          <p>Alur notifikasi</p>
+          <span>
+            <Cookie size={16} aria-hidden="true" /> Sesi Bilcode
+          </span>
+          <ChevronRight size={14} aria-hidden="true" />
+          <span>
+            <ListChecks size={16} aria-hidden="true" /> Pengecekan proyek
+          </span>
+          <ChevronRight size={14} aria-hidden="true" />
+          <span>
+            <WhatsappLogo size={16} aria-hidden="true" /> Notifikasi WhatsApp
+          </span>
+        </div>
+        <div className="sidebar-bottom">
+          <span className="operator-initial" aria-hidden="true">
+            {user.slice(0, 1).toUpperCase()}
+          </span>
+          <div>
+            <strong>{user}</strong>
+            <span>Operator monitoring</span>
+          </div>
+          <ShieldCheck size={18} aria-hidden="true" />
         </div>
       </nav>
       <main id="main" className="content">
         <div className="page-heading">
           <div>
-            <p className="section-label">Ruang kendali</p>
+            <p className="section-label">
+              {page === "overview"
+                ? "Pusat kendali"
+                : "Workspace / " +
+                  navigation.find((item) => item.page === page)?.text}
+            </p>
             <h1>
               {
                 {
-                  overview: "Ringkasan monitoring",
+                  overview: "Semua dalam pantauan.",
                   session: "Sesi Bilcode",
                   logs: "Log & riwayat",
                   settings: "Konfigurasi",
@@ -375,7 +424,7 @@ export function MonitorApp({ page }: { page: Page }) {
                   overview:
                     "Kelola pengecekan proyek dan pengiriman notifikasi dari satu tempat.",
                   session:
-                    "Ganti credential ketika berpindah antara browser dan service.",
+                    "Hubungkan akun dan kelola sesi untuk pengecekan proyek.",
                   logs: "Telusuri pengecekan, aktivitas backend, dan hasil pengiriman.",
                   settings:
                     "Atur frekuensi pengecekan dan tujuan notifikasi WhatsApp.",
@@ -385,6 +434,7 @@ export function MonitorApp({ page }: { page: Page }) {
           </div>
           <Button
             variant="outline"
+            aria-label="Segarkan data"
             onClick={() => void load()}
             disabled={!!busy}
           >
@@ -507,8 +557,8 @@ export function MonitorApp({ page }: { page: Page }) {
         )}
       </main>
       <footer className="app-footer">
-        Panel lokal · Waktu ditampilkan dalam WIB · Tampilan diperbarui setiap
-        10 detik
+        <span>Bilcode Monitoring</span>
+        <span>Waktu dalam WIB · Tampilan diperbarui setiap 10 detik</span>
       </footer>
     </div>
   );
@@ -521,6 +571,7 @@ function Login({
   error: string;
   onLogin: (username: string) => void;
 }) {
+  const { theme, setTheme } = useTheme();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   return (
@@ -529,10 +580,15 @@ function Login({
         <span className="wordmark">
           Bilcode<span>Project Monitoring</span>
         </span>
-        <h1>Monitoring yang bisa kamu kendalikan.</h1>
+        <p className="login-eyebrow">Dari proyek baru ke WhatsApp kamu.</p>
+        <h1>
+          Tetap terhubung.
+          <br />
+          Tanpa terus memeriksa.
+        </h1>
         <p>
-          Kelola sesi Bilcode, periksa aktivitas, dan pastikan notifikasi proyek
-          sampai ke WhatsApp.
+          Satu ruang untuk mengelola sesi Bilcode, memantau proyek, dan mengatur
+          notifikasi WhatsApp.
         </p>
         <div className="login-note">
           <Pause size={22} aria-hidden="true" />
@@ -541,13 +597,40 @@ function Login({
             Mulai.
           </span>
         </div>
+        <div className="login-flow">
+          <span>
+            <Cookie size={20} aria-hidden="true" />
+            Hubungkan akun
+          </span>
+          <ChevronRight size={16} aria-hidden="true" />
+          <span>
+            <ListChecks size={20} aria-hidden="true" />
+            Pantau proyek
+          </span>
+          <ChevronRight size={16} aria-hidden="true" />
+          <span>
+            <WhatsappLogo size={20} aria-hidden="true" />
+            Terima kabar
+          </span>
+        </div>
       </div>
       <section className="login-panel">
-        <p className="section-label">Panel operator</p>
+        <div className="login-panel-top">
+          <p className="section-label">Workspace operator</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={
+              theme === "dark" ? "Gunakan tema terang" : "Gunakan tema gelap"
+            }
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {theme === "dark" ? <Sun /> : <Moon />}
+          </Button>
+        </div>
         <h2>Masuk ke monitoring</h2>
-        <p>
-          Gunakan akun panel lokal. Ini berbeda dari login Bilcode dan GOWA.
-        </p>
+        <p>Selamat datang kembali. Masuk untuk mengelola monitoring kamu.</p>
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -604,7 +687,8 @@ function Login({
           </Button>
         </form>
         <p className="login-help">
-          Kredensial lokal tersedia pada <code>backend/.env</code>.
+          Akun panel berbeda dari akun Bilcode. Hubungkan sesi Bilcode setelah
+          masuk.
         </p>
       </section>
     </main>
@@ -633,6 +717,43 @@ function Overview({
           : "Monitoring berjalan";
   return (
     <>
+      <div className="metric-grid" aria-label="Ringkasan aktivitas">
+        <div className="metric">
+          <div className="metric-label">
+            <Activity size={18} aria-hidden="true" />
+            Pengecekan
+          </div>
+          <strong>
+            {summary.statistics.checks24h}
+            <span>kali</span>
+          </strong>
+          <p>Dalam 24 jam terakhir</p>
+        </div>
+        <div className="metric">
+          <div className="metric-label">
+            <Bell size={18} aria-hidden="true" />
+            Proyek dinotifikasikan
+          </div>
+          <strong>
+            {summary.statistics.notificationsSent}
+            <span>proyek</span>
+          </strong>
+          <p>Total pengiriman berhasil</p>
+        </div>
+        <div className="metric">
+          <div className="metric-label">
+            <Timer size={18} aria-hidden="true" />
+            Interval pengecekan
+          </div>
+          <strong>
+            {config.intervalSeconds / 60}
+            <span>menit</span>
+          </strong>
+          <Link href="/settings">
+            Atur frekuensi <ArrowUpRight size={14} aria-hidden="true" />
+          </Link>
+        </div>
+      </div>
       <div className="overview-grid">
         <section className={`control-panel ${running ? "is-running" : ""}`}>
           <div className="control-heading">
@@ -643,6 +764,7 @@ function Overview({
                 <Pause size={27} fill="currentColor" />
               )}
             </div>
+            <span className="control-label">Status monitoring</span>
             <Status
               value={
                 !running
@@ -720,7 +842,7 @@ function Overview({
           {session.authStatus !== "VALID" && (
             <p className="control-hint">
               Sesi belum siap.{" "}
-              <Link href="/session">Unggah dan validasi cookie</Link> untuk
+              <Link href="/session">Hubungkan dan validasi sesi</Link> untuk
               melanjutkan.
             </p>
           )}
@@ -738,8 +860,8 @@ function Overview({
         </section>
         <aside className="connection-panel panel">
           <div className="panel-title">
-            <h2>Kesiapan koneksi</h2>
-            <span className="subtle">Status aktual backend</span>
+            <h2>Koneksi layanan</h2>
+            <span className="subtle">Bilcode & WhatsApp</span>
           </div>
           <div className="connection-item">
             <div>
@@ -790,17 +912,13 @@ function Overview({
         </aside>
       </div>
       <div className="summary-strip">
-        <span>
-          <strong>{summary.statistics.checks24h}</strong> pengecekan dalam 24
-          jam
-        </span>
-        <span>
-          <strong>{summary.statistics.notificationsSent}</strong> proyek
-          dinotifikasikan
-        </span>
+        <ShieldCheck size={16} aria-hidden="true" />
         <span>
           Peringatan autentikasi{" "}
-          <strong>{config.authAlerts ? "aktif" : "nonaktif"}</strong>
+          <strong>{config.authAlerts ? "aktif" : "nonaktif"}</strong>.{" "}
+          {config.authAlerts
+            ? "Kendala sesi akan diberitahukan melalui WhatsApp."
+            : "Aktifkan dari Konfigurasi untuk menerima peringatan sesi."}
         </span>
       </div>
       <section className="panel">
@@ -838,7 +956,7 @@ function SessionPanel({
       <section className="panel form-panel">
         <div className="panel-title">
           <div>
-            <h2>Credential untuk service</h2>
+            <h2>Akun & sesi Bilcode</h2>
             <p>
               Login lewat OTP email atau impor sesi dari export cookie Bilcode.
             </p>
@@ -851,6 +969,17 @@ function SessionPanel({
             sebelum mengganti atau memvalidasi sesi.
           </Notice>
         )}
+        <ol className="session-steps" aria-label="Tahapan menghubungkan akun">
+          <li data-complete={summary.session.hasCookie}>
+            <span>01</span>Hubungkan akun
+          </li>
+          <li data-complete={summary.session.authStatus === "VALID"}>
+            <span>02</span>Validasi sesi
+          </li>
+          <li data-complete={running}>
+            <span>03</span>Mulai monitoring
+          </li>
+        </ol>
         <BilcodeOtpLogin
           disabled={running || !!busy}
           onConnected={() => {
@@ -859,81 +988,96 @@ function SessionPanel({
             onSessionChanged();
           }}
         />
-        <div className="form-divider">
-          <h3>Alternatif: impor cookie</h3>
-          <p>Gunakan jika kamu sudah memiliki file export cookie.</p>
-        </div>
-        <form
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const ok = await action(
-              "cookie",
-              "/session/cookie",
-              "PUT",
-              { cookieJson: text },
-              "Cookie tersimpan. Lanjutkan dengan validasi sesi.",
-            );
-            if (ok) {
-              setText("");
-              setUploadRevision((revision) => revision + 1);
-            }
-          }}
-        >
-          <div className="field">
-            <Label htmlFor="cookie-file">File export cookie</Label>
-            <CookieDropzone
-              key={uploadRevision}
-              disabled={running || !!busy}
-              onLoad={setText}
-            />
-            <p id="cookie-file-help" className="field-help">
-              Format JSON, maksimal 100 KB. Isi cookie tidak ditampilkan kembali
-              setelah disimpan.
+        <details className="cookie-import">
+          <summary>
+            <UploadSimple size={18} aria-hidden="true" />
+            <span>
+              Gunakan file cookie
+              <span>Alternatif jika kamu sudah memiliki export sesi.</span>
+            </span>
+            <ChevronRight size={18} aria-hidden="true" />
+          </summary>
+          <div className="cookie-import-body">
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const ok = await action(
+                  "cookie",
+                  "/session/cookie",
+                  "PUT",
+                  { cookieJson: text },
+                  "Cookie tersimpan. Lanjutkan dengan validasi sesi.",
+                );
+                if (ok) {
+                  setText("");
+                  setUploadRevision((revision) => revision + 1);
+                }
+              }}
+            >
+              <div className="field">
+                <Label htmlFor="cookie-file">File export cookie</Label>
+                <CookieDropzone
+                  key={uploadRevision}
+                  disabled={running || !!busy}
+                  onLoad={setText}
+                />
+                <p id="cookie-file-help" className="field-help">
+                  Format JSON, maksimal 100 KB. Isi cookie tidak ditampilkan
+                  kembali setelah disimpan.
+                </p>
+              </div>
+              <div className="field">
+                <Label htmlFor="cookie-json">Isi JSON cookie</Label>
+                <Textarea
+                  id="cookie-json"
+                  value={text}
+                  onChange={(event) => setText(event.target.value)}
+                  disabled={running || !!busy}
+                  maxLength={100000}
+                  rows={10}
+                  spellCheck={false}
+                  placeholder={
+                    '[\n  { "name": "bilcode_refresh_token", "value": "...", "domain": ".bilcode.id" }\n]'
+                  }
+                  className="json-input"
+                />
+              </div>
+              <div className="form-actions">
+                <Button disabled={running || !!busy || !text.trim()}>
+                  <UploadSimple />
+                  {busy === "cookie" ? "Menyimpan…" : "Simpan cookie"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </details>
+        <div className="validation-section">
+          <div>
+            <h3>Pastikan sesi siap digunakan</h3>
+            <p>
+              Validasi memeriksa akses akun tanpa mengirim notifikasi proyek.
             </p>
           </div>
-          <div className="field">
-            <Label htmlFor="cookie-json">Isi JSON cookie</Label>
-            <Textarea
-              id="cookie-json"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              disabled={running || !!busy}
-              maxLength={100000}
-              rows={10}
-              spellCheck={false}
-              placeholder={
-                '[\n  { "name": "bilcode_refresh_token", "value": "...", "domain": ".bilcode.id" }\n]'
-              }
-              className="json-input"
-            />
-          </div>
-          <div className="form-actions">
-            <Button disabled={running || !!busy || !text.trim()}>
-              <UploadSimple />
-              {busy === "cookie" ? "Menyimpan…" : "Simpan cookie"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={running || !!busy || !summary.session.hasCookie}
-              onClick={() =>
-                void action(
-                  "validate",
-                  "/session/validate",
-                  "POST",
-                  undefined,
-                  "Sesi valid dan dapat mengakses API proyek.",
-                )
-              }
-            >
-              {busy === "validate" ? "Memvalidasi…" : "Validasi sesi"}
-            </Button>
-          </div>
-        </form>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={running || !!busy || !summary.session.hasCookie}
+            onClick={() =>
+              void action(
+                "validate",
+                "/session/validate",
+                "POST",
+                undefined,
+                "Sesi valid dan dapat mengakses API proyek.",
+              )
+            }
+          >
+            <ShieldCheck size={17} aria-hidden="true" />
+            {busy === "validate" ? "Memvalidasi…" : "Validasi sesi"}
+          </Button>
+        </div>
         <dl className="details-list">
-          <Fact label="Cookie diunggah">
-            {time(summary.session.importedAt)}
-          </Fact>
+          <Fact label="Sesi disimpan">{time(summary.session.importedAt)}</Fact>
           <Fact label="Validasi terakhir">
             {time(summary.session.validatedAt)}
           </Fact>
@@ -952,7 +1096,7 @@ function SessionPanel({
           <Confirm
             title="Hapus credential Bilcode?"
             description="Monitoring harus berhenti. Untuk memulai kembali, kamu perlu mengunggah cookie dari sesi login yang baru."
-            label="Hapus cookie"
+            label="Hapus sesi"
             onConfirm={() =>
               action(
                 "remove-cookie",
@@ -967,7 +1111,7 @@ function SessionPanel({
               variant="outline"
               disabled={running || !!busy || !summary.session.hasCookie}
             >
-              Hapus cookie
+              Hapus sesi
             </Button>
           </Confirm>
         </div>
@@ -1212,7 +1356,7 @@ function CheckTable({ rows }: { rows: CheckRun[] }) {
     return (
       <Empty
         title="Belum ada pengecekan"
-        description="Unggah dan validasi sesi, lalu mulai monitoring. Hasil setiap pengecekan akan tercatat di sini."
+        description="Hubungkan dan validasi sesi Bilcode, lalu mulai monitoring. Setiap hasil pengecekan akan tercatat di sini."
       />
     );
   return (
@@ -1236,17 +1380,17 @@ function CheckTable({ rows }: { rows: CheckRun[] }) {
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td>
+              <td data-label="Waktu mulai (WIB)">
                 {time(row.startedAt)}
                 {row.error && <p className="row-error">{row.error}</p>}
               </td>
-              <td>
+              <td data-label="Status">
                 <Status value={row.status} />
               </td>
-              <td>{row.available}</td>
-              <td>{row.newProjects}</td>
-              <td>{row.sent}</td>
-              <td>
+              <td data-label="Tersedia">{row.available}</td>
+              <td data-label="Proyek baru">{row.newProjects}</td>
+              <td data-label="Dikirim">{row.sent}</td>
+              <td data-label="Durasi">
                 {row.durationMs === null
                   ? "Memproses"
                   : `${(row.durationMs / 1000).toFixed(1)} dtk`}
@@ -1294,18 +1438,20 @@ function LogRows({
           <tbody>
             {(rows as Notification[]).map((row) => (
               <tr key={row.id}>
-                <td className="project-key">
+                <td className="project-key" data-label="Proyek">
                   {row.projectKey}
                   {row.lastError && (
                     <p className="row-error">{row.lastError}</p>
                   )}
                 </td>
-                <td>
+                <td data-label="Status">
                   <Status value={row.status} />
                 </td>
-                <td>{row.attempts}</td>
-                <td>{time(row.sentAt || row.createdAt)}</td>
-                <td>
+                <td data-label="Percobaan">{row.attempts}</td>
+                <td data-label="Waktu (WIB)">
+                  {time(row.sentAt || row.createdAt)}
+                </td>
+                <td data-label="Detail">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline">Lihat JSON</Button>
@@ -1346,14 +1492,14 @@ function LogRows({
         <tbody>
           {(rows as EventLog[]).map((row) => (
             <tr key={row.id}>
-              <td>{time(row.createdAt)}</td>
-              <td>
+              <td data-label="Waktu (WIB)">{time(row.createdAt)}</td>
+              <td data-label="Level">
                 <Status value={row.level} />
               </td>
-              <td>
+              <td data-label="Aktivitas">
                 <code>{row.action}</code>
               </td>
-              <td>
+              <td data-label="Keterangan">
                 {row.message}
                 {row.durationMs !== null && (
                   <span className="subtle"> · {row.durationMs} ms</span>

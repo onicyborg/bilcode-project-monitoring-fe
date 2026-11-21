@@ -84,3 +84,9 @@ Halaman Sesi Bilcode menyediakan form email OTP di atas alternatif import cookie
 Kirim ulang tersedia setelah 60 detik. Kode dihapus dari form setelah verifikasi; tidak ada penyimpanan email/OTP pada localStorage. Setelah reload halaman atau restart backend, minta kode baru. Login ke Bilcode melalui perangkat lain tetap dapat mencabut sesi monitoring.
 
 Deploy backend yang memiliki endpoint OTP sebelum memperbarui frontend. Tidak ada environment variable baru.
+
+## Redesign workspace
+
+Desain mengacu pada skill UI UX Pro Max dengan gaya minimal operasional, IBM Plex Sans, aksen biru, dan kontrol Nova tanpa radius. Desktop memakai navigasi samping; mobile memakai navigasi bawah dengan safe-area spacing. Riwayat tabel menjadi catatan berlabel pada layar kecil. Form OTP menjadi jalur utama, import cookie dapat dibuka jika diperlukan, dan tombol validasi sesi selalu terlihat.
+
+Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan browser mencakup empat halaman pada lebar 375/768/1024/1440, tema terang/gelap, form login, navigasi, filter log, konfirmasi pengiriman (dibatalkan), disclosure import cookie, serta pembesaran teks 200%. Tidak ada OTP nyata atau pesan WhatsApp dikirim selama pemeriksaan desain.
