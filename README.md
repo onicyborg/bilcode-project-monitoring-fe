@@ -76,3 +76,11 @@ Jika refresh token tidak valid atau masa sesi habis, panel meminta login kembali
 ## CI/CD Vercel
 
 Frontend dideploy melalui Vercel Git Integration dari branch `development`. Pengujian dan build di GitHub Actions tetap aktif; workflow deployment Docker/SSH frontend telah dihapus. Panduan setup Vercel, environment API_URL, domain, dan origin backend ada di [deploy/README.md](deploy/README.md).
+
+## Menghubungkan sesi Bilcode dari mobile
+
+Halaman Sesi Bilcode menyediakan form email OTP di atas alternatif import cookie. Hentikan monitoring, masukkan email akun Bilcode, tekan Kirim kode OTP, lalu masukkan enam digit kode dari email. Setelah Verifikasi & simpan sesi berhasil, tekan Validasi sesi dan mulai monitoring dari Ringkasan.
+
+Kirim ulang tersedia setelah 60 detik. Kode dihapus dari form setelah verifikasi; tidak ada penyimpanan email/OTP pada localStorage. Setelah reload halaman atau restart backend, minta kode baru. Login ke Bilcode melalui perangkat lain tetap dapat mencabut sesi monitoring.
+
+Deploy backend yang memiliki endpoint OTP sebelum memperbarui frontend. Tidak ada environment variable baru.

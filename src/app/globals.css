@@ -604,6 +604,17 @@ tbody tr:hover {
   resize: vertical;
   min-height: 220px;
 }
+.otp-login {
+  margin-bottom: 28px;
+}
+.otp-login h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.otp-login form {
+  margin: 20px 0;
+}
 .cookie-dropzone {
   display: flex;
   width: 100%;

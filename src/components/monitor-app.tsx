@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CookieDropzone } from "@/components/cookie-dropzone";
+import { BilcodeOtpLogin } from "@/components/bilcode-otp-login";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -409,7 +410,12 @@ export function MonitorApp({ page }: { page: Page }) {
               <Overview summary={summary} busy={busy} action={action} />
             )}
             {page === "session" && (
-              <SessionPanel summary={summary} busy={busy} action={action} />
+              <SessionPanel
+                summary={summary}
+                busy={busy}
+                action={action}
+                onSessionChanged={() => void load()}
+              />
             )}
             {page === "settings" && (
               <SettingsPanel
@@ -817,10 +823,12 @@ function SessionPanel({
   summary,
   busy,
   action,
+  onSessionChanged,
 }: {
   summary: Summary;
   busy: string;
   action: Action;
+  onSessionChanged: () => void;
 }) {
   const [text, setText] = useState("");
   const [uploadRevision, setUploadRevision] = useState(0);
@@ -832,8 +840,7 @@ function SessionPanel({
           <div>
             <h2>Credential untuk service</h2>
             <p>
-              Unggah export JSON atau tempel isinya. Hanya refresh cookie
-              Bilcode yang disimpan.
+              Login lewat OTP email atau impor sesi dari export cookie Bilcode.
             </p>
           </div>
           <Status value={summary.session.authStatus} />
@@ -844,6 +851,18 @@ function SessionPanel({
             sebelum mengganti atau memvalidasi sesi.
           </Notice>
         )}
+        <BilcodeOtpLogin
+          disabled={running || !!busy}
+          onConnected={() => {
+            setText("");
+            setUploadRevision((revision) => revision + 1);
+            onSessionChanged();
+          }}
+        />
+        <div className="form-divider">
+          <h3>Alternatif: impor cookie</h3>
+          <p>Gunakan jika kamu sudah memiliki file export cookie.</p>
+        </div>
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -954,12 +973,12 @@ function SessionPanel({
         </div>
       </section>
       <aside className="instructions">
-        <h2>Berpindah dari browser ke service</h2>
+        <h2>Login dari mobile atau desktop</h2>
         <ol>
           <li>Hentikan monitoring dan tunggu status berhenti.</li>
-          <li>Login ke Bilcode melalui sesi browser khusus.</li>
-          <li>Ekspor cookie terbaru, lalu tutup dashboard tanpa logout.</li>
-          <li>Simpan cookie di panel ini dan jalankan validasi.</li>
+          <li>Masukkan email akun Bilcode, lalu minta kode OTP.</li>
+          <li>Buka email dan masukkan kode terbaru pada panel ini.</li>
+          <li>Verifikasi dan simpan sesi, lalu jalankan validasi.</li>
           <li>Mulai monitoring melalui halaman Ringkasan.</li>
         </ol>
         <Notice>
