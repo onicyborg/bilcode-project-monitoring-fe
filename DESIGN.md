@@ -1,15 +1,30 @@
-# Design direction
+# Bilcode Monitoring interface
 
-Reading this as: an operations panel for one Bilcode operator, in a quiet, practical control-room style, dial ENERGY 1 / RHYTHM 2 / MOTION 1.
+A personal operations workspace for connecting Bilcode sessions, controlling project polling, and checking WhatsApp delivery. The main decision is whether the account and gateway are ready to run; monitoring status and the next action take priority over activity counts.
 
-The user delegated the shadcn preset and interface decisions. Use the New York preset with Radix components, neutral surfaces, and an emerald action color. The primary decision is whether monitoring should run, and whether its credential is usable.
+## Direction
 
-The product name is a text wordmark, not a fabricated logo. Navigation follows four actual tasks: Ringkasan, Sesi Bilcode, Log & riwayat, and Konfigurasi. A compact top navigation becomes a wrapping two-column navigation on phones; there is no decorative sidebar.
+The UI UX Pro Max searches were reviewed against this existing web app. The generated operations landing/glassmorphism result did not fit an authenticated control panel. The verified `minimalism-and-swiss-style` match was selected instead: clear grids, high contrast, restrained effects, and functional grouping. Next.js navigation guidance and mobile fixed-navigation clearance informed implementation.
 
-The monitoring control is the focal point. Supporting session and delivery facts use definition lists. Real logs use tables, with horizontal scroll contained inside their region when necessary. All numbers come from PostgreSQL, with honest empty states on a new install.
+Retain the selected Nova foundation: IBM Plex Sans, one blue action accent, Lucide icons, and square controls. A navy navigation rail separates workspace navigation from white working surfaces. Light and dark themes use explicit semantic color pairs. Green/amber/red only describe actual statuses. No illustrative assets, decorative telemetry, invented counts, or charts.
 
-DM Sans is bundled locally for readable Indonesian instructions and dense timestamps. Monospace is restricted to JSON and technical identifiers. Phosphor icons are chosen for their literal operation (play, stop, upload, clock, connection, and settings), rather than decoration. Status labels carry words and use color as a secondary signal.
+Energy 2/5, rhythm 3/5, motion 1/5. UI UX Pro Max variance 4/10 and density 6/10 inform the layout. Primary actions use blue; panels and typography provide hierarchy. Short color transitions signal interaction; reduced motion is honored.
 
-Light is the starting theme for daytime inspection. A working dark theme is available and persisted. Buttons have small rounded corners; panels have a slightly larger radius. Hover and focus transitions provide feedback; there are no looping animations, gradients, glow, fabricated metrics, or decorative media.
+## Layout
 
-The visual signature is a clear running/stopped control surface paired with a chronological inspection table and time labels. Mutations show in-progress feedback, completion, and meaningful errors. Destructive or externally visible actions are named explicitly.
+- Desktop: fixed 238px sidebar, top workspace/account bar, maximum 1400px content area. Sidebar includes real navigation, a static description of the notification flow, and the signed-in operator.
+- Tablet: content panels stack before becoming cramped; connection summaries can sit side by side.
+- Mobile: sticky compact header and four-item bottom navigation with safe-area padding. The content reserves space for both bars. Controls are at least 44px high, text inputs use 16px text, forms stack, and tables become labeled records under 480px.
+- Content uses 16/20/24/28/32/40px spacing by hierarchy, with tabular figures for timing/counts.
+
+## Page priorities
+
+- Overview: actual counts and configured interval, followed by monitoring action panel, connection states, and recent checks. Empty states explain how records will appear.
+- Session: connect/validate/start progression; email OTP first. Cookie import is a native expandable alternative. Validation stays visible outside that disclosure. Stored-session timestamps and removal follow below.
+- Configuration: editable settings grouped by polling, destination, gateway, and alerts; delivery tests remain in a separate supporting panel with confirmation before sending.
+- Logs: real server records, keyboard-operable filters, pagination, and responsive labeled records. JSON details stay in a dialog.
+- Login: product purpose on a navy surface and a distinct form surface, with theme control and clear distinction between panel login and Bilcode login.
+
+## Verification
+
+Check desktop/tablet/phone widths, light/dark themes, overflow, login and logout, navigation and active states, OTP and cookie disclosure, validation placement, log tabs/records/dialogs, confirmation dialogs, keyboard focus, and content clearance above mobile navigation. Avoid real upstream OTP requests or WhatsApp messages during visual checks; use explicit browser fixtures where data is needed.

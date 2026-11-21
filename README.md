@@ -76,3 +76,17 @@ Jika refresh token tidak valid atau masa sesi habis, panel meminta login kembali
 ## CI/CD Vercel
 
 Frontend dideploy melalui Vercel Git Integration dari branch `development`. Pengujian dan build di GitHub Actions tetap aktif; workflow deployment Docker/SSH frontend telah dihapus. Panduan setup Vercel, environment API_URL, domain, dan origin backend ada di [deploy/README.md](deploy/README.md).
+
+## Menghubungkan sesi Bilcode dari mobile
+
+Halaman Sesi Bilcode menyediakan form email OTP di atas alternatif import cookie. Hentikan monitoring, masukkan email akun Bilcode, tekan Kirim kode OTP, lalu masukkan enam digit kode dari email. Setelah Verifikasi & simpan sesi berhasil, tekan Validasi sesi dan mulai monitoring dari Ringkasan.
+
+Kirim ulang tersedia setelah 60 detik. Kode dihapus dari form setelah verifikasi; tidak ada penyimpanan email/OTP pada localStorage. Setelah reload halaman atau restart backend, minta kode baru. Login ke Bilcode melalui perangkat lain tetap dapat mencabut sesi monitoring.
+
+Deploy backend yang memiliki endpoint OTP sebelum memperbarui frontend. Tidak ada environment variable baru.
+
+## Redesign workspace
+
+Desain mengacu pada skill UI UX Pro Max dengan gaya minimal operasional, IBM Plex Sans, aksen biru, dan kontrol Nova tanpa radius. Desktop memakai navigasi samping; mobile memakai navigasi bawah dengan safe-area spacing. Riwayat tabel menjadi catatan berlabel pada layar kecil. Form OTP menjadi jalur utama, import cookie dapat dibuka jika diperlukan, dan tombol validasi sesi selalu terlihat.
+
+Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan browser mencakup empat halaman pada lebar 375/768/1024/1440, tema terang/gelap, form login, navigasi, filter log, konfirmasi pengiriman (dibatalkan), disclosure import cookie, serta pembesaran teks 200%. Tidak ada OTP nyata atau pesan WhatsApp dikirim selama pemeriksaan desain.
