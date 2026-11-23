@@ -93,6 +93,8 @@ Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan brow
 
 ## Proyek dan penawaran
 
+Kartu proyek menampilkan jumlah pelamar dari `payload.bids_count`, sesuai sinkronisasi Bilcode terakhir (waktu Terlihat pada). Nilai 0 ditampilkan sebagai 0 pelamar; data yang tidak tersedia tidak diasumsikan nol. Proyek yang sudah tidak tersedia tetap menampilkan jumlah terakhir yang tersimpan. Tidak ada request API tambahan untuk informasi ini.
+
 Kartu penawaran menampilkan hasil percobaan terakhir, pesan Bilcode yang sudah dibersihkan, tahap, HTTP status, kode, field validasi, dan saran tindakan. Respons tersimpan dapat dibuka sebagai JSON. Tombol Riwayat hasil pengajuan membuka catatan per percobaan dengan pagination; melihatnya tidak menjalankan bid. Catatan tetap ada setelah retry, dan dibedakan dari status aplikasi terkini apabila pengajuan kemudian ditemukan di Bilcode. Data lama menampilkan `lastError` jika tersedia, tanpa respons historis rekaan.
 
 Fitur riwayat membutuhkan backend dengan migrasi `20261123090000_bid_attempt_history`. Deploy backend terlebih dahulu. Tidak ada perubahan environment Vercel.

@@ -8,6 +8,7 @@ import {
   Send,
   RefreshCw,
   TriangleAlert,
+  Users,
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,12 @@ type Project = {
   hasApplied: boolean;
   version: string;
   applicationState: string | null;
-  payload: { description?: string; deadline?: string; service_type?: string };
+  payload: {
+    description?: string;
+    deadline?: string;
+    service_type?: string;
+    bids_count?: number | null;
+  };
   observedAt: string;
 };
 type Application = {
@@ -284,6 +290,14 @@ export function BidsPanel({
                       <p className="field-help">
                         <Clock size={14} aria-hidden="true" /> Deadline:{" "}
                         {project.payload.deadline || "Belum jelas"}
+                      </p>
+                      <p className="field-help">
+                        <Users size={14} aria-hidden="true" />
+                        {typeof project.payload.bids_count === "number" &&
+                        Number.isSafeInteger(project.payload.bids_count) &&
+                        project.payload.bids_count >= 0
+                          ? `${new Intl.NumberFormat("id-ID").format(project.payload.bids_count)} pelamar`
+                          : "Jumlah pelamar belum tersedia"}
                       </p>
                       <details open={highlight === project.projectId}>
                         <summary>Detail kebutuhan</summary>
