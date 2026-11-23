@@ -24,6 +24,7 @@ Energy 2/5, rhythm 3/5, motion 1/5. UI UX Pro Max variance 4/10 and density 6/10
 - Configuration: editable settings grouped by polling, destination, gateway, and alerts; delivery tests remain in a separate supporting panel with confirmation before sending.
 - Logs: real server records, keyboard-operable filters, pagination, and responsive labeled records. JSON details stay in a dialog.
 - Bids: cached project descriptions lead to one explicit confirmation. The confirmation states AI data sharing, amount zero, and immediate submission. Recorded bids show raw upstream status separately from delivery progress and WhatsApp transitions. Project and application groups remain separate so an available project cannot be mistaken for an accepted bid. Square status accents reuse the operations palette; the submit arrow denotes an outgoing proposal.
+- Bid results: the server message and next action lead each result, followed by stage/HTTP/code facts. The left status border distinguishes confirmed, failed, and uncertain results using the existing semantic palette. Response JSON is secondary disclosure; full history uses a paginated, scrollable dialog to keep the primary project list readable. Facts stack on phones, long text wraps, and dialog focus returns to its trigger. Historical responses remain separate from current Bilcode status.
 - Login: product purpose on a navy surface and a distinct form surface, with theme control and clear distinction between panel login and Bilcode login.
 
 ## Verification
