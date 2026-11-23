@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { BidResults, type BidResult } from "@/components/bid-results";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,9 @@ type Application = {
   lastError: string | null;
   proposalPayload: unknown;
   updatedAt: string;
+  confirmedAt?: string | null;
+  attempts?: BidResult[];
+  _count?: { attempts: number };
   events: {
     id: string;
     previousStatus: string | null;
@@ -343,7 +347,25 @@ export function BidsPanel({
                       Status Bilcode:{" "}
                       <strong>{app.status || "Belum diketahui"}</strong>
                     </p>
-                    {app.lastError && <p className="notice">{app.lastError}</p>}
+                    {app.lastError &&
+                      (!app.attempts?.length ||
+                        (app.confirmedAt &&
+                          app.attempts[0].createdAt < app.confirmedAt)) && (
+                        <p className="notice">{app.lastError}</p>
+                      )}
+                    {!app.attempts?.length && (
+                      <p className="field-help">
+                        Belum ada detail respons untuk pengajuan ini. Catatan
+                        lama tetap ditampilkan jika tersedia.
+                      </p>
+                    )}
+                    <BidResults
+                      projectId={app.projectId}
+                      currentState={app.state}
+                      latest={app.attempts?.[0]}
+                      total={app._count?.attempts || 0}
+                      onUnauthorized={onUnauthorized}
+                    />
                     <p className="field-help">
                       Diperbarui {time(app.updatedAt)}
                     </p>

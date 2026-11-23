@@ -93,6 +93,10 @@ Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan brow
 
 ## Proyek dan penawaran
 
+Kartu penawaran menampilkan hasil percobaan terakhir, pesan Bilcode yang sudah dibersihkan, tahap, HTTP status, kode, field validasi, dan saran tindakan. Respons tersimpan dapat dibuka sebagai JSON. Tombol Riwayat hasil pengajuan membuka catatan per percobaan dengan pagination; melihatnya tidak menjalankan bid. Catatan tetap ada setelah retry, dan dibedakan dari status aplikasi terkini apabila pengajuan kemudian ditemukan di Bilcode. Data lama menampilkan `lastError` jika tersedia, tanpa respons historis rekaan.
+
+Fitur riwayat membutuhkan backend dengan migrasi `20261123090000_bid_attempt_history`. Deploy backend terlebih dahulu. Tidak ada perubahan environment Vercel.
+
 Halaman `/bids` menampilkan proyek tersimpan dan riwayat penawaran. Notifikasi proyek WhatsApp menyertakan tautan ke halaman ini. Memuat halaman hanya membaca database; tombol Sinkronkan Bilcode memperbarui proyek dan seluruh riwayat bid, tanpa mengirim pengajuan baru.
 
 Pilih Konfirmasi & ajukan untuk melihat izin pemakaian AI dan pengiriman langsung. Satu konfirmasi **Ya, susun & kirim bid** mengizinkan backend menyusun proposal lalu mengirimkannya. Nilai `proposed_amount` tetap **0** mengikuti kontrak payload saat ini. Jika hasil POST belum pasti, penawaran ditandai menunggu kepastian dan tombol pengiriman dikunci; jangan mengulang manual di dashboard Bilcode. Status lokal pengiriman dan status asli Bilcode ditampilkan terpisah.
