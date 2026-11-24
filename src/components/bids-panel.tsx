@@ -30,6 +30,15 @@ type Project = {
   hasApplied: boolean;
   version: string;
   applicationState: string | null;
+  draft?: {
+    state: string;
+    version: string;
+    isDevelopment: boolean;
+    reason: string | null;
+    lastError: string | null;
+    autoAttempted: boolean;
+    proposalPayload: unknown;
+  } | null;
   payload: {
     description?: string;
     deadline?: string;
@@ -43,6 +52,7 @@ type Application = {
   projectId: number;
   title: string;
   state: string;
+  source?: string;
   status: string | null;
   upstreamId: number | null;
   lastError: string | null;
@@ -63,6 +73,7 @@ type Dashboard = {
   projects: Project[];
   applications: Application[];
   aiConfigured: boolean;
+  autoBid?: boolean;
   model: string;
   proposedAmount: number;
   page: number;
@@ -239,10 +250,12 @@ export function BidsPanel({
     <div className="bids-workspace">
       <div className="panel bids-toolbar">
         <div>
-          <h2>Konfirmasi sekali, pantau selanjutnya</h2>
+          <h2>Analisis proyek & pengajuan</h2>
           <p>
-            AI menyusun lalu langsung mengirim proposal hanya untuk proyek yang
-            kamu konfirmasi.
+            {data?.autoBid
+              ? "Bid otomatis aktif untuk pengembangan sistem. Proyek lain menunggu persetujuanmu."
+              : "Bid otomatis nonaktif. AI tetap menyiapkan draft saat monitoring berjalan; pengiriman menunggu persetujuanmu."}{" "}
+            Ubah pengaturan melalui menu Konfigurasi.
           </p>
         </div>
         <Button
@@ -426,6 +439,51 @@ export function BidsPanel({
                                 "Deskripsi belum tersedia."}
                             </p>
                           </details>
+                          {project.draft && (
+                            <div>
+                              <p className="field-help">
+                                {project.draft.version !== project.version
+                                  ? "Lingkup berubah; draft perlu diperbarui."
+                                  : project.draft.state === "READY"
+                                    ? project.draft.isDevelopment
+                                      ? "Pengembangan sistem · draft siap"
+                                      : "Persetujuan manual · draft siap"
+                                    : project.draft.state === "PREPARING"
+                                      ? "AI sedang menilai & menyusun draft…"
+                                      : "Analisis belum berhasil"}
+                              </p>
+                              <p className="field-help">
+                                {project.draft.reason ||
+                                  project.draft.lastError}
+                              </p>
+                              {project.draft.reason &&
+                                project.draft.lastError && (
+                                  <p className="field-help">
+                                    {project.draft.lastError}
+                                  </p>
+                                )}
+                              {project.draft.autoAttempted &&
+                                !project.applicationState && (
+                                  <p className="field-help">
+                                    Proses otomatis sudah dicoba. Periksa
+                                    ketersediaan dan konfirmasi manual bila
+                                    ingin melanjutkan.
+                                  </p>
+                                )}
+                              {project.draft.proposalPayload != null && (
+                                <details>
+                                  <summary>Draft proposal tersimpan</summary>
+                                  <pre className="bid-payload">
+                                    {JSON.stringify(
+                                      project.draft.proposalPayload,
+                                      null,
+                                      2,
+                                    )}
+                                  </pre>
+                                </details>
+                              )}
+                            </div>
+                          )}
                           <p className="field-help">
                             Terlihat pada {time(project.observedAt)}
                           </p>
@@ -440,7 +498,10 @@ export function BidsPanel({
                                 project.applicationState
                               : project.applicationState === "FAILED"
                                 ? "Konfirmasi & coba lagi"
-                                : "Konfirmasi & ajukan"}
+                                : project.draft?.state === "READY" &&
+                                    project.draft.version === project.version
+                                  ? "Konfirmasi & kirim draft"
+                                  : "Konfirmasi & ajukan"}
                           </Button>
                         </article>
                       );
@@ -503,6 +564,9 @@ export function BidsPanel({
                           <div>
                             <p className="section-label">
                               Proyek #{app.projectId}
+                              {app.source === "AUTO"
+                                ? " · Otomatis"
+                                : " · Manual"}
                               {app.upstreamId
                                 ? ` · Bid #${app.upstreamId}`
                                 : ""}
@@ -631,8 +695,10 @@ export function BidsPanel({
           <DialogHeader>
             <DialogTitle>Ajukan penawaran untuk {selected?.title}?</DialogTitle>
             <DialogDescription>
-              Konfirmasi ini mengizinkan pemakaian AI dan pengiriman bid
-              langsung ke Bilcode. Tidak ada tahap tinjau draft berikutnya.
+              {selected?.draft?.state === "READY" &&
+              selected.draft.version === selected.version
+                ? "Konfirmasi ini akan mengirim draft yang sudah tersimpan ke Bilcode tanpa generate AI ulang."
+                : "Konfirmasi ini mengizinkan AI menyusun proposal lalu langsung mengirimnya ke Bilcode."}
             </DialogDescription>
           </DialogHeader>
           <div className="notice">
@@ -660,7 +726,7 @@ export function BidsPanel({
             </Button>
             <Button disabled={working} onClick={() => void submit()}>
               <ArrowUpRight size={16} aria-hidden="true" />
-              {working ? "AI menyusun & mengirim…" : "Ya, susun & kirim bid"}
+              {working ? "Memproses pengajuan…" : "Ya, kirim penawaran"}
             </Button>
           </DialogFooter>
         </DialogContent>

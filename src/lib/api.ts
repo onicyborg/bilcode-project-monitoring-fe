@@ -150,6 +150,7 @@ export interface Configuration {
   gowaUsername: string;
   deviceId: string;
   authAlerts: boolean;
+  autoBid: boolean;
   hasGowaPassword: boolean;
   updatedAt: string;
 }

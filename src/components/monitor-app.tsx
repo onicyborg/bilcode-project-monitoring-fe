@@ -1161,6 +1161,7 @@ function SettingsPanel({
   action: Action;
 }) {
   const [alerts, setAlerts] = useState(config.authAlerts);
+  const [autoBid, setAutoBid] = useState(config.autoBid ?? false);
   return (
     <div className="two-column">
       <section className="panel form-panel">
@@ -1192,6 +1193,7 @@ function SettingsPanel({
                 gowaPassword: form.get("gowaPassword") || undefined,
                 deviceId: form.get("deviceId"),
                 authAlerts: alerts,
+                autoBid,
               },
               "Konfigurasi berhasil disimpan.",
             );
@@ -1296,6 +1298,24 @@ function SettingsPanel({
                 id="auth-alerts"
                 checked={alerts}
                 onCheckedChange={setAlerts}
+              />
+            </div>
+            <div className="switch-field">
+              <div>
+                <Label htmlFor="auto-bid">
+                  Bid otomatis pengembangan sistem
+                </Label>
+                <p>
+                  AI menilai lingkup dan menyiapkan draft saat monitoring
+                  berjalan. Proyek web, mobile, bug fixing, redesign, dan
+                  penambahan fitur langsung diajukan. Proyek lain menunggu
+                  persetujuanmu.
+                </p>
+              </div>
+              <Switch
+                id="auto-bid"
+                checked={autoBid}
+                onCheckedChange={setAutoBid}
               />
             </div>
             <Button type="submit">
