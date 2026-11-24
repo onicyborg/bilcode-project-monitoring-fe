@@ -1275,6 +1275,66 @@ select {
   gap: 28px;
   min-width: 0;
 }
+.bid-view-tabs[data-slot="tabs-list"] {
+  display: flex;
+  flex-wrap: wrap;
+  height: auto;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 20px;
+}
+.bid-view-tabs [data-slot="tabs-trigger"] {
+  min-height: 44px;
+  white-space: normal;
+  padding: 10px 16px;
+}
+.bid-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.bid-filter-bar label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.bid-filter-bar select {
+  font: inherit;
+  font-size: 0.875rem;
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  min-height: 44px;
+  padding: 8px 12px;
+  max-width: 100%;
+}
+.bid-filter-bar .field-help {
+  flex-basis: 100%;
+  margin: 0;
+}
+.bid-filter-bar select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+@media (max-width: 480px) {
+  .bid-view-tabs[data-slot="tabs-list"] {
+    width: 100%;
+  }
+  .bid-view-tabs [data-slot="tabs-trigger"] {
+    flex: 1 1 40%;
+    padding: 10px 8px;
+  }
+  .bid-filter-bar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bid-filter-bar select {
+    width: 100%;
+    font-size: 1rem;
+  }
+}
 .bid-results,
 .bid-history-list {
   display: grid;

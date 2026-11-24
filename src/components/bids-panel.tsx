@@ -13,6 +13,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { BidResults, type BidResult } from "@/components/bid-results";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ type Application = {
   proposalPayload: unknown;
   updatedAt: string;
   confirmedAt?: string | null;
+  submittedAt?: string;
   attempts?: BidResult[];
   _count?: { attempts: number };
   events: {
@@ -67,6 +69,12 @@ type Dashboard = {
   pages: number;
   projectTotal: number;
   applicationTotal: number;
+  projectPages: number;
+  applicationPages: number;
+  counts: {
+    projects: { all: number; available: number; archive: number };
+    applications: Record<string, number>;
+  };
   sync: { lastSyncedAt: string | null; lastError: string | null } | null;
 };
 const localState: Record<string, string> = {
@@ -93,14 +101,34 @@ export function BidsPanel({
   onUnauthorized: () => void;
 }) {
   const [data, setData] = useState<Dashboard | null>(null);
-  const [page, setPage] = useState(1);
+  const [view, setView] = useState("projects");
+  const [projectPage, setProjectPage] = useState(1);
+  const [applicationPage, setApplicationPage] = useState(1);
+  const [projectFilter, setProjectFilter] = useState("available");
+  const [applicationFilter, setApplicationFilter] = useState("all");
   const [selected, setSelected] = useState<Project | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const [highlight, setHighlight] = useState<number | null>(null);
+  const query = `/bids?projectPage=${projectPage}&applicationPage=${applicationPage}&projectFilter=${projectFilter}&applicationFilter=${applicationFilter}&limit=10${highlight ? `&focusProject=${highlight}` : ""}`;
+  const page = view === "projects" ? projectPage : applicationPage;
+  const pages =
+    view === "projects" ? data?.projectPages : data?.applicationPages;
+  const setPage = (update: (page: number) => number) =>
+    view === "projects" ? setProjectPage(update) : setApplicationPage(update);
+  useEffect(() => {
+    if (data && projectPage > data.projectPages)
+      setProjectPage(data.projectPages);
+    if (data && applicationPage > data.applicationPages)
+      setApplicationPage(data.applicationPages);
+  }, [data, projectPage, applicationPage]);
   const load = useCallback(async () => {
     try {
-      const next = await api<Dashboard>(`/bids?page=${page}&limit=10`);
+      const next = await api<Dashboard>(query);
+      if (!next.counts)
+        throw new Error(
+          "Filter penawaran memerlukan backend terbaru. Selesaikan deployment backend, lalu segarkan halaman.",
+        );
       setData(next);
       setError("");
     } catch (reason) {
@@ -112,12 +140,17 @@ export function BidsPanel({
             : "Data penawaran belum tersedia.",
         );
     }
-  }, [page, onUnauthorized]);
+  }, [query, onUnauthorized]);
   useEffect(() => {
     let active = true;
+    setData(null);
     const run = async () => {
       try {
-        const next = await api<Dashboard>(`/bids?page=${page}&limit=10`);
+        const next = await api<Dashboard>(query);
+        if (!next.counts)
+          throw new Error(
+            "Filter penawaran memerlukan backend terbaru. Selesaikan deployment backend, lalu segarkan halaman.",
+          );
         if (active) {
           setData(next);
           setError("");
@@ -136,15 +169,20 @@ export function BidsPanel({
     };
     void run();
     const interval = setInterval(() => void run(), 10000);
-    setHighlight(
-      Number(new URLSearchParams(window.location.search).get("project")) ||
-        null,
-    );
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, [page, onUnauthorized]);
+  }, [query, onUnauthorized]);
+  useEffect(() => {
+    const id = Number(
+      new URLSearchParams(window.location.search).get("project"),
+    );
+    if (id > 0) {
+      setHighlight(id);
+      setProjectFilter("all");
+    }
+  }, []);
   async function refresh() {
     setWorking(true);
     setError("");
@@ -233,214 +271,349 @@ export function BidsPanel({
           {data.sync.lastError}
         </p>
       )}
-      {!data ? (
-        <p className="loading-state">Memuat proyek dan penawaran…</p>
-      ) : (
-        <>
-          {!data.aiConfigured && (
-            <p className="notice">
-              <TriangleAlert size={18} aria-hidden="true" />
-              AI belum diaktifkan. Atur VIKEY_API_KEY pada environment backend
-              sebelum mengajukan.
-            </p>
-          )}
-          <section aria-labelledby="bid-projects-title">
-            <div className="bid-section-heading">
-              <h2 id="bid-projects-title">Proyek terdeteksi</h2>
-              <span>{data.projectTotal} proyek tersimpan</span>
-            </div>
-            {!data.projects.length ? (
-              <div className="panel empty">
-                <Send size={26} aria-hidden="true" />
-                <h3>Belum ada proyek tersimpan</h3>
-                <p>
-                  Jalankan monitoring atau sinkronkan Bilcode untuk mengambil
-                  proyek. Tidak ada bid yang dikirim pada saat sinkronisasi.
-                </p>
-              </div>
-            ) : (
-              <div className="bid-project-grid">
-                {data.projects.map((project) => {
-                  const canSubmit =
-                    project.available &&
-                    !project.hasApplied &&
-                    (!project.applicationState ||
-                      project.applicationState === "FAILED") &&
-                    data.aiConfigured;
-                  return (
-                    <article
-                      className="panel bid-project"
-                      key={project.projectId}
-                      data-highlighted={highlight === project.projectId}
-                    >
-                      <div className="bid-project-meta">
-                        <span>
-                          #{project.projectId} ·{" "}
-                          {project.payload.service_type || "Proyek Bilcode"}
-                        </span>
-                        <span className="status status-neutral">
-                          {project.hasApplied
-                            ? "Sudah dilamar"
-                            : project.available
-                              ? "Tersedia"
-                              : "Tidak tersedia"}
-                        </span>
-                      </div>
-                      <h3>{project.title}</h3>
-                      <p className="field-help">
-                        <Clock size={14} aria-hidden="true" /> Deadline:{" "}
-                        {project.payload.deadline || "Belum jelas"}
-                      </p>
-                      <p className="field-help">
-                        <Users size={14} aria-hidden="true" />
-                        {typeof project.payload.bids_count === "number" &&
-                        Number.isSafeInteger(project.payload.bids_count) &&
-                        project.payload.bids_count >= 0
-                          ? `${new Intl.NumberFormat("id-ID").format(project.payload.bids_count)} pelamar`
-                          : "Jumlah pelamar belum tersedia"}
-                      </p>
-                      <details open={highlight === project.projectId}>
-                        <summary>Detail kebutuhan</summary>
-                        <p className="bid-description">
-                          {project.payload.description ||
-                            "Deskripsi belum tersedia."}
-                        </p>
-                      </details>
-                      <p className="field-help">
-                        Terlihat pada {time(project.observedAt)}
-                      </p>
-                      <Button
-                        disabled={working || !canSubmit}
-                        onClick={() => setSelected(project)}
-                      >
-                        <Send size={16} aria-hidden="true" />
-                        {project.applicationState &&
-                        project.applicationState !== "FAILED"
-                          ? localState[project.applicationState] ||
-                            project.applicationState
-                          : "Konfirmasi & ajukan"}
-                      </Button>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-          <section aria-labelledby="my-bids-title">
-            <div className="bid-section-heading">
-              <h2 id="my-bids-title">Penawaran saya</h2>
-              <span>{data.applicationTotal} pengajuan</span>
-            </div>
-            {!data.applications.length ? (
-              <div className="panel empty">
-                <h3>Belum ada pengajuan tercatat</h3>
-                <p>
-                  Bid manual dari dashboard Bilcode juga akan muncul setelah
-                  sinkronisasi pertama.
-                </p>
-              </div>
-            ) : (
-              <div className="bid-applications">
-                {data.applications.map((app) => (
-                  <article className="panel bid-application" key={app.id}>
-                    <div className="bid-application-heading">
-                      <div>
-                        <p className="section-label">
-                          Proyek #{app.projectId}
-                          {app.upstreamId ? ` · Bid #${app.upstreamId}` : ""}
-                        </p>
-                        <h3>{app.title}</h3>
-                      </div>
-                      <span
-                        className={`status ${app.state === "CONFIRMED" ? "status-good" : app.state === "FAILED" ? "status-bad" : "status-warn"}`}
-                      >
-                        {localState[app.state] || app.state}
-                      </span>
-                    </div>
-                    <p>
-                      Status Bilcode:{" "}
-                      <strong>{app.status || "Belum diketahui"}</strong>
-                    </p>
-                    {app.lastError &&
-                      (!app.attempts?.length ||
-                        (app.confirmedAt &&
-                          app.attempts[0].createdAt < app.confirmedAt)) && (
-                        <p className="notice">{app.lastError}</p>
-                      )}
-                    {!app.attempts?.length && (
-                      <p className="field-help">
-                        Belum ada detail respons untuk pengajuan ini. Catatan
-                        lama tetap ditampilkan jika tersedia.
-                      </p>
-                    )}
-                    <BidResults
-                      projectId={app.projectId}
-                      currentState={app.state}
-                      latest={app.attempts?.[0]}
-                      total={app._count?.attempts || 0}
-                      onUnauthorized={onUnauthorized}
-                    />
-                    <p className="field-help">
-                      Diperbarui {time(app.updatedAt)}
-                    </p>
-                    {app.events.length > 0 && (
-                      <ul className="bid-transitions">
-                        {app.events.map((event) => (
-                          <li key={event.id}>
-                            <span>
-                              {event.previousStatus || "Pengajuan baru"} →{" "}
-                              {event.nextStatus}
-                            </span>
-                            <span>
-                              {event.sentAt
-                                ? "WhatsApp terkirim"
-                                : "WhatsApp menunggu"}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {app.proposalPayload !== null && (
-                      <details>
-                        <summary>Lihat payload proposal</summary>
-                        <pre className="bid-payload">
-                          {JSON.stringify(app.proposalPayload, null, 2)}
-                        </pre>
-                      </details>
-                    )}
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-          <div className="pagination">
-            <span>
-              Halaman {page} dari {data.pages}
-            </span>
-            <div>
-              <Button
-                variant="outline"
-                disabled={working || page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Sebelumnya
-              </Button>
-              <Button
-                variant="outline"
-                disabled={working || page >= data.pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Berikutnya
-              </Button>
-            </div>
-          </div>
-          <p className="field-help">
-            Model: {data.model}. Nilai proposed_amount dikirim sebagai 0
-            mengikuti alur Bilcode yang sudah diuji; bukan rekomendasi harga
-            pekerjaan.
+      <Tabs value={view} onValueChange={setView}>
+        <TabsList className="bid-view-tabs" aria-label="Tampilan penawaran">
+          <TabsTrigger value="projects">
+            Proyek
+            {data ? ` (${data.counts.projects.available} tersedia)` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="applications">
+            Penawaran saya{data ? ` (${data.counts.applications.all})` : ""}
+          </TabsTrigger>
+        </TabsList>
+        {!data ? (
+          <p className="loading-state">
+            {error
+              ? "Data penawaran belum dapat ditampilkan."
+              : "Memuat proyek dan penawaran…"}
           </p>
-        </>
-      )}
+        ) : (
+          <>
+            {!data.aiConfigured && (
+              <p className="notice">
+                <TriangleAlert size={18} aria-hidden="true" />
+                AI belum diaktifkan. Atur VIKEY_API_KEY pada environment backend
+                sebelum mengajukan.
+              </p>
+            )}
+            <TabsContent value="projects">
+              <section aria-labelledby="bid-projects-title">
+                {highlight && (
+                  <p className="notice">
+                    Menampilkan proyek #{highlight} dari tautan notifikasi.{" "}
+                    <button
+                      className="inline-button"
+                      onClick={() => {
+                        setHighlight(null);
+                        setProjectFilter("available");
+                        setProjectPage(1);
+                      }}
+                    >
+                      Kembali ke proyek yang bisa diajukan
+                    </button>
+                  </p>
+                )}
+                <div className="bid-filter-bar">
+                  <label htmlFor="project-filter">Tampilkan proyek</label>
+                  <select
+                    id="project-filter"
+                    value={projectFilter}
+                    disabled={working}
+                    onChange={(e) => {
+                      setProjectFilter(e.target.value);
+                      setProjectPage(1);
+                      setHighlight(null);
+                    }}
+                  >
+                    <option value="available">
+                      Bisa diajukan ({data.counts.projects.available})
+                    </option>
+                    <option value="archive">
+                      Arsip ({data.counts.projects.archive})
+                    </option>
+                    <option value="all">
+                      Semua ({data.counts.projects.all})
+                    </option>
+                  </select>
+                  <p className="field-help">
+                    {projectFilter === "available"
+                      ? "Hanya proyek tersedia yang belum diajukan atau masih dapat dicoba ulang. Kelayakan akun tetap diperiksa Bilcode."
+                      : projectFilter === "archive"
+                        ? "Arsip mencakup proyek tidak tersedia, sudah diajukan, atau masih diproses. Data tidak dihapus."
+                        : "Daftar lengkap proyek yang tersimpan. Hanya proyek yang memenuhi syarat ketersediaan dapat diajukan."}
+                  </p>
+                </div>
+                <div className="bid-section-heading">
+                  <h2 id="bid-projects-title">
+                    {projectFilter === "available"
+                      ? "Proyek yang bisa diajukan"
+                      : projectFilter === "archive"
+                        ? "Arsip proyek"
+                        : "Semua proyek"}
+                  </h2>
+                  <span>{data.projectTotal} proyek</span>
+                </div>
+                {!data.projects.length ? (
+                  <div className="panel empty">
+                    <Send size={26} aria-hidden="true" />
+                    <h3>
+                      {projectFilter === "available"
+                        ? "Belum ada proyek yang bisa diajukan"
+                        : "Tidak ada proyek pada filter ini"}
+                    </h3>
+                    <p>
+                      Proyek lama tetap tersedia melalui filter Arsip atau
+                      Semua. Jalankan monitoring atau sinkronkan Bilcode untuk
+                      memperbarui ketersediaan.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bid-project-grid">
+                    {data.projects.map((project) => {
+                      const canSubmit =
+                        project.available &&
+                        !project.hasApplied &&
+                        (!project.applicationState ||
+                          project.applicationState === "FAILED") &&
+                        data.aiConfigured;
+                      return (
+                        <article
+                          className="panel bid-project"
+                          key={project.projectId}
+                          data-highlighted={highlight === project.projectId}
+                        >
+                          <div className="bid-project-meta">
+                            <span>
+                              #{project.projectId} ·{" "}
+                              {project.payload.service_type || "Proyek Bilcode"}
+                            </span>
+                            <span className="status status-neutral">
+                              {project.applicationState === "UNKNOWN"
+                                ? "Belum pasti"
+                                : ["GENERATING", "SUBMITTING"].includes(
+                                      project.applicationState || "",
+                                    )
+                                  ? "Sedang diproses"
+                                  : project.applicationState === "CONFIRMED"
+                                    ? "Sudah diajukan"
+                                    : project.applicationState === "FAILED" &&
+                                        project.available
+                                      ? "Bisa dicoba ulang"
+                                      : project.hasApplied
+                                        ? "Sudah dilamar"
+                                        : project.available
+                                          ? "Tersedia"
+                                          : "Tidak tersedia"}
+                            </span>
+                          </div>
+                          <h3>{project.title}</h3>
+                          <p className="field-help">
+                            <Clock size={14} aria-hidden="true" /> Deadline:{" "}
+                            {project.payload.deadline || "Belum jelas"}
+                          </p>
+                          <p className="field-help">
+                            <Users size={14} aria-hidden="true" />
+                            {typeof project.payload.bids_count === "number" &&
+                            Number.isSafeInteger(project.payload.bids_count) &&
+                            project.payload.bids_count >= 0
+                              ? `${new Intl.NumberFormat("id-ID").format(project.payload.bids_count)} pelamar`
+                              : "Jumlah pelamar belum tersedia"}
+                          </p>
+                          <details open={highlight === project.projectId}>
+                            <summary>Detail kebutuhan</summary>
+                            <p className="bid-description">
+                              {project.payload.description ||
+                                "Deskripsi belum tersedia."}
+                            </p>
+                          </details>
+                          <p className="field-help">
+                            Terlihat pada {time(project.observedAt)}
+                          </p>
+                          <Button
+                            disabled={working || !canSubmit}
+                            onClick={() => setSelected(project)}
+                          >
+                            <Send size={16} aria-hidden="true" />
+                            {project.applicationState &&
+                            project.applicationState !== "FAILED"
+                              ? localState[project.applicationState] ||
+                                project.applicationState
+                              : project.applicationState === "FAILED"
+                                ? "Konfirmasi & coba lagi"
+                                : "Konfirmasi & ajukan"}
+                          </Button>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </TabsContent>
+            <TabsContent value="applications">
+              <section aria-labelledby="my-bids-title">
+                <div className="bid-filter-bar">
+                  <label htmlFor="application-filter">Status penawaran</label>
+                  <select
+                    id="application-filter"
+                    value={applicationFilter}
+                    disabled={working}
+                    onChange={(e) => {
+                      setApplicationFilter(e.target.value);
+                      setApplicationPage(1);
+                    }}
+                  >
+                    {Object.entries({
+                      all: "Semua",
+                      selected: "Dipilih",
+                      rejected: "Ditolak Bilcode",
+                      applied: "Menunggu keputusan",
+                      confirmed: "Tercatat di Bilcode",
+                      failed: "Gagal dikirim",
+                      unknown: "Belum pasti",
+                      processing: "Sedang diproses",
+                    }).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label} ({data.counts.applications[value] || 0})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="field-help">
+                    Urutan pengajuan terbaru ke terlama. Tercatat di Bilcode
+                    berarti terkirim; keputusan dipilih atau ditolak ditampilkan
+                    terpisah.
+                  </p>
+                </div>
+                <div className="bid-section-heading">
+                  <h2 id="my-bids-title">Penawaran saya</h2>
+                  <span>{data.applicationTotal} pengajuan</span>
+                </div>
+                {!data.applications.length ? (
+                  <div className="panel empty">
+                    <h3>Belum ada penawaran pada filter ini</h3>
+                    <p>
+                      Bid manual dari dashboard Bilcode juga akan muncul setelah
+                      sinkronisasi pertama.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bid-applications">
+                    {data.applications.map((app) => (
+                      <article className="panel bid-application" key={app.id}>
+                        <div className="bid-application-heading">
+                          <div>
+                            <p className="section-label">
+                              Proyek #{app.projectId}
+                              {app.upstreamId
+                                ? ` · Bid #${app.upstreamId}`
+                                : ""}
+                            </p>
+                            <h3>{app.title}</h3>
+                          </div>
+                          <span
+                            className={`status ${app.state === "FAILED" || (app.state === "CONFIRMED" && app.status === "rejected") ? "status-bad" : app.state === "CONFIRMED" && app.status === "selected" ? "status-good" : app.state === "UNKNOWN" ? "status-warn" : "status-neutral"}`}
+                          >
+                            {app.state === "CONFIRMED"
+                              ? (
+                                  {
+                                    selected: "Dipilih",
+                                    rejected: "Ditolak",
+                                    applied: "Menunggu keputusan",
+                                  } as Record<string, string>
+                                )[app.status || ""] || "Tercatat di Bilcode"
+                              : app.state === "FAILED"
+                                ? "Gagal dikirim"
+                                : localState[app.state] || app.state}
+                          </span>
+                        </div>
+                        <p>
+                          <span className="field-help">
+                            Diajukan {time(app.submittedAt || app.confirmedAt)}{" "}
+                            · Status diperbarui {time(app.updatedAt)}
+                          </span>
+                        </p>
+                        <p>
+                          Status Bilcode:{" "}
+                          <strong>{app.status || "Belum diketahui"}</strong>
+                        </p>
+                        {app.lastError &&
+                          (!app.attempts?.length ||
+                            (app.confirmedAt &&
+                              app.attempts[0].createdAt < app.confirmedAt)) && (
+                            <p className="notice">{app.lastError}</p>
+                          )}
+                        {!app.attempts?.length && (
+                          <p className="field-help">
+                            Belum ada detail respons untuk pengajuan ini.
+                            Catatan lama tetap ditampilkan jika tersedia.
+                          </p>
+                        )}
+                        <BidResults
+                          projectId={app.projectId}
+                          currentState={app.state}
+                          latest={app.attempts?.[0]}
+                          total={app._count?.attempts || 0}
+                          onUnauthorized={onUnauthorized}
+                        />
+                        {app.events.length > 0 && (
+                          <ul className="bid-transitions">
+                            {app.events.map((event) => (
+                              <li key={event.id}>
+                                <span>
+                                  {event.previousStatus || "Pengajuan baru"} →{" "}
+                                  {event.nextStatus}
+                                </span>
+                                <span>
+                                  {event.sentAt
+                                    ? "WhatsApp terkirim"
+                                    : "WhatsApp menunggu"}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {app.proposalPayload !== null && (
+                          <details>
+                            <summary>Lihat payload proposal</summary>
+                            <pre className="bid-payload">
+                              {JSON.stringify(app.proposalPayload, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </TabsContent>
+            <div className="pagination">
+              <span>
+                Halaman {page} dari {pages}
+              </span>
+              <div>
+                <Button
+                  variant="outline"
+                  disabled={working || page <= 1}
+                  onClick={() => setPage((p) => p - 1)}
+                >
+                  Sebelumnya
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={working || page >= (pages || 1)}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Berikutnya
+                </Button>
+              </div>
+            </div>
+            <p className="field-help">
+              Model: {data.model}. Nilai proposed_amount dikirim sebagai 0
+              mengikuti alur Bilcode yang sudah diuji; bukan rekomendasi harga
+              pekerjaan.
+            </p>
+          </>
+        )}
+      </Tabs>
       <Dialog
         open={!!selected}
         onOpenChange={(open) => {
