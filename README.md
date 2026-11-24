@@ -107,6 +107,13 @@ Fitur riwayat membutuhkan backend dengan migrasi `20261123090000_bid_attempt_his
 
 Halaman `/bids` menampilkan proyek tersimpan dan riwayat penawaran. Notifikasi proyek WhatsApp menyertakan tautan ke halaman ini. Memuat halaman hanya membaca database; tombol Sinkronkan Bilcode memperbarui proyek dan seluruh riwayat bid, tanpa mengirim pengajuan baru.
 
-Pilih Konfirmasi & ajukan untuk melihat izin pemakaian AI dan pengiriman langsung. Satu konfirmasi **Ya, susun & kirim bid** mengizinkan backend menyusun proposal lalu mengirimkannya. Nilai `proposed_amount` tetap **0** mengikuti kontrak payload saat ini. Jika hasil POST belum pasti, penawaran ditandai menunggu kepastian dan tombol pengiriman dikunci; jangan mengulang manual di dashboard Bilcode. Status lokal pengiriman dan status asli Bilcode ditampilkan terpisah.
+Saat monitoring berjalan, AI menilai proyek dan menyimpan draft, termasuk untuk proyek yang memerlukan persetujuan manual. Jika auto-bid aktif, proyek pengembangan sistem langsung diajukan; proyek lain menunggu konfirmasi. Pilih **Konfirmasi & kirim draft** lalu **Ya, kirim penawaran** untuk memakai draft tersimpan tanpa generate ulang. Bila draft belum siap atau tidak valid lagi, konfirmasi mengizinkan penyusunan draft dahulu. Nilai `proposed_amount` tetap **0** mengikuti kontrak payload saat ini. Jika hasil POST belum pasti, penawaran ditandai menunggu kepastian dan tombol pengiriman dikunci; jangan mengulang manual di dashboard Bilcode. Status lokal pengiriman dan status asli Bilcode ditampilkan terpisah.
 
 Pengecekan status bid mengikuti interval monitoring pada backend. Saat monitoring berhenti, pengecekan berkala juga berhenti; sinkronisasi manual masih tersedia. Perubahan status dikirim ke WhatsApp, termasuk untuk bid lama yang diimpor sebagai baseline. Frontend membaca status tersimpan setiap 10 detik. Deploy backend beserta migrasi bid terlebih dahulu dan tambahkan `VIKEY_API_KEY` ke secret backend `VPS_ENV`. Tidak ada API key AI atau environment tambahan pada Vercel.
+
+
+### Draft dan auto-bid
+
+Kartu proyek menampilkan klasifikasi pengembangan sistem/persetujuan manual, alasan, status analisis, dan draft JSON yang dapat dibuka. Pengajuan otomatis ditandai **Otomatis** pada riwayat; hasil dan respons tetap dapat diperiksa seperti pengajuan manual. Konfigurasi menyediakan sakelar **Bid otomatis pengembangan sistem**. Hentikan monitoring sebelum mengubahnya. Default backend setelah migrasi adalah aktif; persiapan draft tetap berjalan saat sakelar dimatikan, tetapi tidak ada pengiriman otomatis.
+
+Deploy backend dengan migrasi `20261124100000_bid_drafts_and_automation` terlebih dahulu, kemudian frontend. Tidak ada environment Vercel baru. Pengecekan satu kali saat monitoring berhenti dan Sinkronkan Bilcode tidak memicu auto-bid.
