@@ -93,6 +93,12 @@ Arah visual dan keputusan layout ada di [DESIGN.md](DESIGN.md). Pemeriksaan brow
 
 ## Proyek dan penawaran
 
+Halaman dipisahkan menjadi tab **Proyek** dan **Penawaran saya**. Proyek dibuka pada filter **Bisa diajukan**; proyek tidak tersedia, sudah diajukan, atau menunggu kepastian masuk **Arsip**. Filter Semua tetap tersedia. Gagal sebelumnya yang masih tersedia dapat dikonfirmasi ulang, dengan label yang membedakannya dari proyek baru.
+
+Penawaran saya dapat difilter berdasarkan seluruh riwayat, dipilih, ditolak, menunggu keputusan, tercatat di Bilcode, gagal dikirim, belum pasti, dan sedang diproses. Tercatat tidak berarti dipilih klien. Urutan memakai submittedAt dari terbaru ke terlama; waktu pembaruan status ditampilkan terpisah. Kedua daftar mempunyai pagination independen dan kembali ke halaman pertama saat filter terkait berubah.
+
+Tautan notifikasi dengan `?project=ID` membuka proyek yang dituju, termasuk arsip, disertai tombol kembali ke proyek yang bisa diajukan. Fitur ini membutuhkan backend filter dan migrasi `20261124095000_bid_submission_order`; deploy backend terlebih dahulu. Tidak ada environment tambahan.
+
 Kartu proyek menampilkan jumlah pelamar dari `payload.bids_count`, sesuai sinkronisasi Bilcode terakhir (waktu Terlihat pada). Nilai 0 ditampilkan sebagai 0 pelamar; data yang tidak tersedia tidak diasumsikan nol. Proyek yang sudah tidak tersedia tetap menampilkan jumlah terakhir yang tersimpan. Tidak ada request API tambahan untuk informasi ini.
 
 Kartu penawaran menampilkan hasil percobaan terakhir, pesan Bilcode yang sudah dibersihkan, tahap, HTTP status, kode, field validasi, dan saran tindakan. Respons tersimpan dapat dibuka sebagai JSON. Tombol Riwayat hasil pengajuan membuka catatan per percobaan dengan pagination; melihatnya tidak menjalankan bid. Catatan tetap ada setelah retry, dan dibedakan dari status aplikasi terkini apabila pengajuan kemudian ditemukan di Bilcode. Data lama menampilkan `lastError` jika tersedia, tanpa respons historis rekaan.
