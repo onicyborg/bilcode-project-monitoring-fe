@@ -450,7 +450,7 @@ export function BidsPanel({
                                       : "Persetujuan manual · draft siap"
                                     : project.draft.state === "PREPARING"
                                       ? "AI sedang menilai & menyusun draft…"
-                                      : "Analisis belum berhasil"}
+                                      : "Draft gagal · klasifikasi belum dapat digunakan"}
                               </p>
                               <p className="field-help">
                                 {project.draft.reason ||
